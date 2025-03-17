@@ -1,4 +1,6 @@
 from fastapi import Query, FastAPI, Depends
+# from sqlmodel import SQLModel, Field, create_engine, Session
+
 from sqlmodel import SQLModel, Field, create_engine, Session
 
 
@@ -18,9 +20,9 @@ engine = create_engine(DATABASE_URL)
 def init_db():
     try:
         SQLModel.metadata.create_all(engine)
-        print("Database created successfully")
+        print("Database logged successfully")
     except Exception as e:
-        print(f"Error creating database: {e}")
+        print(f"Error logging database: {e}")
 
 
 def get_db():
