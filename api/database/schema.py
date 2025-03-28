@@ -4,19 +4,26 @@ class RegisterUser(BaseModel):
     firstname: str
     lastname: str
     email: EmailStr
-    phone_number: int
+    phone_number: str
     password: str
 
     class Config:
-        from_attributes: True
+        from_attributes = True
 
 
 class RegisterResponse(BaseModel):
     firstname: str
     lastname: str
     email: EmailStr
-    phone_number: int
+    phone_number: str
+
+    class Config:
+        from_attribute = True
+
+
+class Login(BaseModel):
+    email: EmailStr
     password: str
 
     class Config:
-        from_attribute: True
+        from_attributes = True
