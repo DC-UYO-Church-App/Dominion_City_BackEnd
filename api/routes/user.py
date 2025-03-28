@@ -1,9 +1,11 @@
 from fastapi import APIRouter, HTTPException, status, Depends
+from fastapi.security.oauth2 import OAuth2PasswordRequestForm
 from api.database.schema import RegisterResponse, RegisterUser, UserLogin
 from api.database.models.models import Registration
 from api.database.db import get_db
 from sqlmodel import Session, select
 from api.utils.utils import hashed_password, verify_password
+from api.utils.oauth2 import create_access_token
 from api.utils.emails import sendmail
 
 
@@ -36,23 +38,19 @@ async def register(new_user: RegisterUser, db: Session = Depends(get_db)):
 
 
 @router.get("/login", status_code=status.HTTP_200_OK)
-async def login(user: UserLogin, db: Session = Depends(get_db)):
-    check_email = db.exec(select(Registration).where(Registration.email == user.email)).first()
+async def login(users: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
+    user = db.exec(select(Registration).where(Registration.email == users.username)).first()
     
 
-    # user = 
-
-    if not check_email:
+    if not user:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Incorrect details")
 
-    if not verify_password(user.password, check_email.password):
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Invalid credentials.")
+    if not verify_password(users.password, user.password):
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Invalid credentials.")
 
-    # password_match = verify_password(password)
-
-    # if not password_match:
-    #     raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=f"Incorrect details") check
+    access_token = create_access_token(data={"user_id": user.id})
 
     return {
-        "message": "login success!!!"
+        "access_token": access_token,
+        "token_type": "Bearer"
     }
