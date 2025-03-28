@@ -4,12 +4,15 @@ from datetime import datetime, timedelta, timezone
 from api.database.schema import TokenData
 from fastapi.security.oauth2 import OAuth2PasswordBearer
 from fastapi import Depends, HTTPException, status
+from dotenv import load_dotenv
+import os
+load_dotenv()
 
 oauth2_schema = OAuth2PasswordBearer(tokenUrl='login')
 
-SECRET_KEY = "f8dca80650e701407da8292ab1a22a7f20d92010230c9090317b5fb730ed90c3"
-ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRY_TIME = 30
+SECRET_KEY = os.getenv("SECRET_KEY")
+ALGORITHM = os.getenv("ALGORITHM")
+ACCESS_TOKEN_EXPIRY_TIME = int(os.getenv("ACCESS_TOKEN_EXPIRY_TIME"))
 
 
 def create_access_token(data: dict):
@@ -29,9 +32,10 @@ def verify_token(token: str, credentials_exception):
         if id is None:
             raise credentials_exception
         token_data = TokenData(id=id)
+        new_token_data = token_data.id
     except InvalidTokenError:
         raise credentials_exception
-    return token_data.id
+    return new_token_data
 
 
 def get_current_user(token: str = Depends(oauth2_schema)):

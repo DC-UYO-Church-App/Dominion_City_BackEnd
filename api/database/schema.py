@@ -1,4 +1,4 @@
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, EmailStr, Field
 from typing import Optional
 
 class RegisterUser(BaseModel):
@@ -17,6 +17,7 @@ class RegisterResponse(BaseModel):
     lastname: str
     email: EmailStr
     phone_number: str
+    points: Optional[int] = Field(default=0)
 
     class Config:
         from_attribute = True
@@ -36,3 +37,5 @@ class Token(BaseModel):
 
 class TokenData(BaseModel):
     id: Optional[str] = None
+
+

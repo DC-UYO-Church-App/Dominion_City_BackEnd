@@ -32,6 +32,7 @@ async def register(new_user: RegisterUser, db: Session = Depends(get_db)):
     db.commit()
     # await sendmail(new_user.email, new_user.firstname)
     db.refresh(store_user)
+    print(store_user.points)
     return store_user
 
 
