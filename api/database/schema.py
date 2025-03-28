@@ -21,7 +21,7 @@ class RegisterResponse(BaseModel):
         from_attribute = True
 
 
-class Login(BaseModel):
+class UserLogin(BaseModel):
     email: EmailStr
     password: str
 

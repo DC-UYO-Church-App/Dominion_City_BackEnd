@@ -1,5 +1,5 @@
 from fastapi import APIRouter, HTTPException, status, Depends
-from api.database.schema import RegisterResponse, RegisterUser, Login
+from api.database.schema import RegisterResponse, RegisterUser, UserLogin
 from api.database.models.models import Registration
 from api.database.db import get_db
 from sqlmodel import Session, select
@@ -36,9 +36,8 @@ async def register(new_user: RegisterUser, db: Session = Depends(get_db)):
 
 
 @router.get("/login", status_code=status.HTTP_200_OK)
-async def login(user: Login, db: Session = Depends(get_db)):
-    email = user.email
-    check_email = db.exec(select(Registration).where(Registration.email == email)).first()
+async def login(user: UserLogin, db: Session = Depends(get_db)):
+    check_email = db.exec(select(Registration).where(Registration.email == user.email)).first()
     
 
     # user = 
@@ -46,10 +45,9 @@ async def login(user: Login, db: Session = Depends(get_db)):
     if not check_email:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Incorrect details")
 
-    password = user.password
-    print(password)
-    check_password = db.exec(select(Registration.password)).fetchall()
-    print(check_password)
+    if not verify_password(user.password, check_email.password):
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Invalid credentials.")
+
     # password_match = verify_password(password)
 
     # if not password_match:
