@@ -13,4 +13,4 @@ class Registration(SQLModel, table=True):
     phone_number: str = Field(index=True, nullable=False)
     password: str
     date_registered: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
-    points: int = Field(nullable=True, default=None)
+    points: int = Field(nullable=True, default=0)
