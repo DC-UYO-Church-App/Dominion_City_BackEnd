@@ -7,12 +7,12 @@ from sqlmodel import SQLModel, Field, create_engine, Session
 from dotenv import load_dotenv
 load_dotenv()
 import os
-USER = os.getenv("USER")
+DB_USER = os.getenv("DB_USER")
 PASSWORD = os.getenv("PASSWORD")
 SERVER = os.getenv("SERVER")
 PORT = os.getenv("PORT")
 DB = os.getenv("DB")
-DATABASE_URL = f"postgresql://{USER}:{PASSWORD}@{SERVER}:{PORT}/{DB}"
+DATABASE_URL = f"postgresql://{DB_USER}:{PASSWORD}@{SERVER}:{PORT}/{DB}"
 
 # DATABASE_URL = os.getenv("DATABASE_URL")
 engine = create_engine(DATABASE_URL)

@@ -8,11 +8,11 @@ load_dotenv()
 
 async def sendmail(email: str, firstname: str):
     conf = ConnectionConfig(
-    MAIL_SERVER=os.getenv("EMAIL_HOST"),
-    MAIL_USERNAME=os.getenv("SMTP"),
-    MAIL_PASSWORD=os.getenv("SMTP_PASSWORD"),
-    MAIL_PORT=int(os.getenv("EMAIL_PORT")),
-    # MAIL_FROM=os.getenv("EMAIL_HOST_USER"),
+    MAIL_SERVER=os.getenv("MAIL_SERVER"),
+    MAIL_USERNAME=os.getenv("MAIL_USERNAME"),
+    MAIL_PASSWORD=os.getenv("MAIL_PASSWORD"),
+    MAIL_PORT=int(os.getenv("MAIL_PORT")),
+    MAIL_FROM=os.getenv("EMAIL_HOST_USER"),
     MAIL_SSL_TLS=True,
     MAIL_STARTTLS=False,
     )
@@ -105,7 +105,7 @@ async def sendmail(email: str, firstname: str):
 
     """
 
-    replace_username = template.replace("{{username}}", username)
+    replace_username = template.replace("{{firstname}}", firstname)
 
     message = MessageSchema(
         subject="Welcome to Our Daily Blog.",
