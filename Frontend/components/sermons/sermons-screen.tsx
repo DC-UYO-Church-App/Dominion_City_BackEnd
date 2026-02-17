@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -8,62 +8,66 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Badge } from "@/components/ui/badge"
 import { Search, Play, Download, Calendar, Clock, User } from "lucide-react"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { apiClient } from "@/lib/api"
 
 export function SermonsScreen() {
   const [searchQuery, setSearchQuery] = useState("")
   const [selectedSpeaker, setSelectedSpeaker] = useState("all")
+  const [sermons, setSermons] = useState<any[]>([])
+  const [isLoading, setIsLoading] = useState(true)
 
-  // Mock sermon data
-  const sermons = [
-    {
-      id: 1,
-      title: "The Power of Faith",
-      speaker: "Pastor David Ogbueli",
-      date: "May 26, 2025",
-      duration: "45 min",
-      type: "video",
-      thumbnail: "/placeholder.svg?height=120&width=200",
-      description: "Understanding how faith moves mountains and transforms lives.",
-      series: "Faith Series",
-    },
-    {
-      id: 2,
-      title: "Walking in Divine Favor",
-      speaker: "Pastor Nonso Agu",
-      date: "May 19, 2025",
-      duration: "38 min",
-      type: "audio",
-      thumbnail: "/placeholder.svg?height=120&width=200",
-      description: "Discovering God's favor in every season of life.",
-      series: "Favor Series",
-    },
-    {
-      id: 3,
-      title: "The Heart of Worship",
-      speaker: "Pastor David Ogbueli",
-      date: "May 12, 2025",
-      duration: "42 min",
-      type: "video",
-      thumbnail: "/placeholder.svg?height=120&width=200",
-      description: "True worship comes from the heart, not just the lips.",
-      series: "Worship Series",
-    },
-    {
-      id: 4,
-      title: "Building Strong Relationships",
-      speaker: "Pastor Nonso Agu",
-      date: "May 5, 2025",
-      duration: "35 min",
-      type: "audio",
-      thumbnail: "/placeholder.svg?height=120&width=200",
-      description: "Biblical principles for healthy relationships.",
-      series: "Relationship Series",
-    },
-  ]
+  useEffect(() => {
+    apiClient
+      .getSermons()
+      .then((response) => {
+        setSermons(response.sermons || [])
+      })
+      .catch(() => {
+        setSermons([])
+      })
+      .finally(() => setIsLoading(false))
+  }, [])
 
-  const speakers = ["all", "Pastor David Ogbueli", "Pastor Nonso Agu"]
+  const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000/api"
+  const uploadsBaseUrl = apiBaseUrl.replace(/\/api$/, "")
 
-  const filteredSermons = sermons.filter((sermon) => {
+  const mappedSermons = useMemo(
+    () =>
+      sermons.map((sermon) => {
+        const thumbnailUrl = sermon.thumbnailUrl
+        const thumbnail = thumbnailUrl
+          ? thumbnailUrl.startsWith("/uploads/")
+            ? `${uploadsBaseUrl}${thumbnailUrl}`
+            : thumbnailUrl
+          : "/placeholder.svg?height=120&width=200"
+        return {
+          id: sermon.id,
+          title: sermon.title,
+          speaker: sermon.preacher,
+          date: sermon.sermonDate
+            ? new Date(sermon.sermonDate).toLocaleDateString("en-US", {
+                month: "short",
+                day: "numeric",
+                year: "numeric",
+              })
+            : "",
+          duration: sermon.duration ? `${sermon.duration} min` : "",
+          type: sermon.videoUrl ? "video" : "audio",
+          thumbnail,
+          description: sermon.description || "",
+          series: sermon.category || "General",
+          videoUrl: sermon.videoUrl || "",
+        }
+      }),
+    [sermons, uploadsBaseUrl]
+  )
+
+  const speakers = useMemo(() => {
+    const unique = Array.from(new Set(mappedSermons.map((sermon) => sermon.speaker).filter(Boolean)))
+    return ["all", ...unique]
+  }, [mappedSermons])
+
+  const filteredSermons = mappedSermons.filter((sermon) => {
     const matchesSearch =
       sermon.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
       sermon.speaker.toLowerCase().includes(searchQuery.toLowerCase())
@@ -113,56 +117,83 @@ export function SermonsScreen() {
 
         <TabsContent value="recent" className="mt-6">
           <div className="grid gap-4">
-            {filteredSermons.map((sermon) => (
-              <Card key={sermon.id} className="overflow-hidden">
-                <div className="flex flex-col sm:flex-row">
-                  <div className="relative w-full sm:w-48 h-32 sm:h-auto">
-                    <img
-                      src={sermon.thumbnail || "/placeholder.svg"}
-                      alt={sermon.title}
-                      className="w-full h-full object-cover"
-                    />
-                    <div className="absolute inset-0 bg-black/20 flex items-center justify-center">
-                      <Button size="sm" className="bg-white/90 text-black hover:bg-white">
-                        <Play className="h-4 w-4 mr-1" />
-                        Play
-                      </Button>
-                    </div>
-                    <Badge variant="secondary" className="absolute top-2 right-2 bg-black/70 text-white">
-                      {sermon.type === "video" ? "Video" : "Audio"}
-                    </Badge>
+            {isLoading ? (
+              <Card>
+                <CardContent className="pt-6">
+                  <div className="text-center py-8">
+                    <p className="text-muted-foreground">Loading sermons...</p>
                   </div>
-                  <div className="flex-1 p-4">
-                    <div className="flex justify-between items-start mb-2">
-                      <div>
-                        <h3 className="font-semibold text-lg mb-1">{sermon.title}</h3>
-                        <p className="text-sm text-muted-foreground mb-2">{sermon.description}</p>
-                      </div>
-                      <Button variant="ghost" size="sm">
-                        <Download className="h-4 w-4" />
-                      </Button>
-                    </div>
-
-                    <div className="flex items-center space-x-4 text-sm text-muted-foreground mb-3">
-                      <div className="flex items-center">
-                        <User className="h-4 w-4 mr-1" />
-                        {sermon.speaker}
-                      </div>
-                      <div className="flex items-center">
-                        <Calendar className="h-4 w-4 mr-1" />
-                        {sermon.date}
-                      </div>
-                      <div className="flex items-center">
-                        <Clock className="h-4 w-4 mr-1" />
-                        {sermon.duration}
-                      </div>
-                    </div>
-
-                    <Badge variant="outline">{sermon.series}</Badge>
-                  </div>
-                </div>
+                </CardContent>
               </Card>
-            ))}
+            ) : filteredSermons.length === 0 ? (
+              <Card>
+                <CardContent className="pt-6">
+                  <div className="text-center py-8">
+                    <p className="text-muted-foreground">No sermons available.</p>
+                  </div>
+                </CardContent>
+              </Card>
+            ) : (
+              filteredSermons.map((sermon) => (
+                <Card key={sermon.id} className="overflow-hidden">
+                  <div className="flex flex-col sm:flex-row">
+                    <div className="relative w-full sm:w-48 h-32 sm:h-auto">
+                      <img
+                        src={sermon.thumbnail || "/placeholder.svg"}
+                        alt={sermon.title}
+                        className="w-full h-full object-cover"
+                      />
+                      <div className="absolute inset-0 bg-black/20 flex items-center justify-center">
+                        <Button
+                          size="sm"
+                          className="bg-white/90 text-black hover:bg-white"
+                          onClick={() => {
+                            if (sermon.videoUrl) {
+                              window.open(sermon.videoUrl, "_blank", "noopener,noreferrer")
+                            }
+                          }}
+                          disabled={!sermon.videoUrl}
+                        >
+                          <Play className="h-4 w-4 mr-1" />
+                          {sermon.videoUrl ? "Play" : "Unavailable"}
+                        </Button>
+                      </div>
+                      <Badge variant="secondary" className="absolute top-2 right-2 bg-black/70 text-white">
+                        {sermon.type === "video" ? "Video" : "Audio"}
+                      </Badge>
+                    </div>
+                    <div className="flex-1 p-4">
+                      <div className="flex justify-between items-start mb-2">
+                        <div>
+                          <h3 className="font-semibold text-lg mb-1">{sermon.title}</h3>
+                          <p className="text-sm text-muted-foreground mb-2">{sermon.description}</p>
+                        </div>
+                        <Button variant="ghost" size="sm">
+                          <Download className="h-4 w-4" />
+                        </Button>
+                      </div>
+
+                      <div className="flex items-center space-x-4 text-sm text-muted-foreground mb-3">
+                        <div className="flex items-center">
+                          <User className="h-4 w-4 mr-1" />
+                          {sermon.speaker}
+                        </div>
+                        <div className="flex items-center">
+                          <Calendar className="h-4 w-4 mr-1" />
+                          {sermon.date}
+                        </div>
+                        <div className="flex items-center">
+                          <Clock className="h-4 w-4 mr-1" />
+                          {sermon.duration}
+                        </div>
+                      </div>
+
+                      <Badge variant="outline">{sermon.series}</Badge>
+                    </div>
+                  </div>
+                </Card>
+              ))
+            )}
           </div>
         </TabsContent>
 

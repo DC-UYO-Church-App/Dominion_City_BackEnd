@@ -181,10 +181,6 @@ class ApiClient {
     return response.json();
   }
 
-  async getSermons() {
-    return this.request('/sermons');
-  }
-
   async updateSermon(
     id: string,
     data: { title?: string; preacher?: string; description?: string; videoUrl?: string; duration?: string }
@@ -197,6 +193,110 @@ class ApiClient {
 
   async deleteSermon(id: string) {
     return this.request(`/sermons/${id}`, {
+      method: 'DELETE',
+    });
+  }
+
+  // Events
+  async createEvent(data: {
+    title: string;
+    description?: string;
+    eventDate: string;
+    address?: string;
+    status?: 'scheduled' | 'cancelled';
+    coverFile?: File | null;
+  }) {
+    if (data.coverFile) {
+      const formData = new FormData();
+      formData.append('title', data.title);
+      if (data.description) formData.append('description', data.description);
+      formData.append('eventDate', data.eventDate);
+      if (data.address) formData.append('address', data.address);
+      if (data.status) formData.append('status', data.status);
+      formData.append('cover', data.coverFile);
+
+      const headers: HeadersInit = {};
+      if (this.token) {
+        headers['Authorization'] = `Bearer ${this.token}`;
+      }
+
+      const response = await fetch(`${API_BASE_URL}/events`, {
+        method: 'POST',
+        body: formData,
+        headers,
+      });
+
+      if (!response.ok) {
+        const error = await response.json().catch(() => ({ error: 'Request failed' }));
+        throw new Error(error.error || `HTTP ${response.status}`);
+      }
+
+      return response.json();
+    }
+
+    return this.request('/events', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async getEvents(filters?: { startDate?: string; endDate?: string; limit?: number; offset?: number }) {
+    const params = new URLSearchParams();
+    if (filters) {
+      Object.entries(filters).forEach(([key, value]) => {
+        if (value !== undefined) params.append(key, value.toString());
+      });
+    }
+    return this.request(`/events?${params}`);
+  }
+
+  async updateEvent(
+    id: string,
+    data: {
+      title?: string;
+      description?: string;
+      eventDate?: string;
+      address?: string;
+      status?: 'scheduled' | 'cancelled';
+      coverFile?: File | null;
+    }
+  ) {
+    if (data.coverFile) {
+      const formData = new FormData();
+      if (data.title) formData.append('title', data.title);
+      if (data.description) formData.append('description', data.description);
+      if (data.eventDate) formData.append('eventDate', data.eventDate);
+      if (data.address) formData.append('address', data.address);
+      if (data.status) formData.append('status', data.status);
+      formData.append('cover', data.coverFile);
+
+      const headers: HeadersInit = {};
+      if (this.token) {
+        headers['Authorization'] = `Bearer ${this.token}`;
+      }
+
+      const response = await fetch(`${API_BASE_URL}/events/${id}`, {
+        method: 'PUT',
+        body: formData,
+        headers,
+      });
+
+      if (!response.ok) {
+        const error = await response.json().catch(() => ({ error: 'Request failed' }));
+        throw new Error(error.error || `HTTP ${response.status}`);
+      }
+
+      return response.json();
+    }
+
+    return this.request(`/events/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async deleteEvent(id: string) {
+    return this.request(`/events/${id}`, {
       method: 'DELETE',
     });
   }
@@ -255,13 +355,6 @@ class ApiClient {
 
   async searchSermons(query: string) {
     return this.request(`/sermons/search?q=${encodeURIComponent(query)}`);
-  }
-
-  async createSermon(data: any) {
-    return this.request('/sermons', {
-      method: 'POST',
-      body: JSON.stringify(data),
-    });
   }
 
   // Cell Groups

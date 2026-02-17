@@ -1,10 +1,10 @@
 import { DashboardLayout } from "@/components/dashboard/dashboard-layout"
-import { SermonsScreen } from "@/components/sermons/sermons-screen"
+import { EventsScreen } from "@/components/events/events-screen"
 
-export default function MessagesPage() {
+export default function EventsPage() {
   return (
     <DashboardLayout>
-      <SermonsScreen />
+      <EventsScreen />
     </DashboardLayout>
   )
 }

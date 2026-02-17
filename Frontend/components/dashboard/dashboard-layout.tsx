@@ -32,22 +32,22 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
   }, [router])
 
   if (isCheckingAuth) {
-    return <div className="min-h-screen bg-slate-950" />
+    return <div className="min-h-screen bg-white" />
   }
 
   return (
-    <div className="flex flex-col min-h-screen bg-slate-950 text-slate-100">
+    <div className="flex flex-col min-h-screen bg-white text-slate-900">
       {/* Top Header */}
-      <header className="sticky top-0 z-30 flex items-center justify-between px-4 h-14 border-b border-white/10 bg-slate-950">
+      <header className="sticky top-0 z-30 flex items-center justify-between px-4 h-14 border-b border-slate-200 bg-white">
         <Button variant="ghost" size="icon" onClick={() => setIsDrawerOpen(true)} className="md:hidden">
           <Menu className="h-5 w-5" />
           <span className="sr-only">Open menu</span>
         </Button>
         <div className="flex items-center">
           <img src="/logo.png" alt="Dominion City" className="h-8 w-auto mr-2" />
-          <h1 className="text-lg font-bold text-white">Golden Heart</h1>
+          <h1 className="text-lg font-bold text-slate-900">Golden Heart</h1>
         </div>
-        <div className="w-8 h-8 rounded-full bg-white/10"></div>
+        <div className="w-8 h-8 rounded-full bg-slate-200"></div>
       </header>
 
       {/* Side Drawer (Mobile) */}

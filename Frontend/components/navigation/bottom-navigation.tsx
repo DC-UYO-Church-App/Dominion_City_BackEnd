@@ -21,7 +21,7 @@ export function BottomNavigation() {
     },
     {
       name: "Sermons",
-      href: "/dashboard/messages",
+      href: "/dashboard/sermons",
       icon: MessageSquare,
     },
     {
@@ -38,7 +38,7 @@ export function BottomNavigation() {
 
   return (
     <div className="fixed bottom-4 left-1/2 z-40 w-[92%] max-w-3xl -translate-x-1/2">
-      <nav className="flex h-16 rounded-2xl border border-white/20 bg-white/25 shadow-xl backdrop-blur-2xl">
+      <nav className="flex h-16 rounded-2xl border border-slate-900/10 bg-slate-900 shadow-xl">
         {navItems.map((item) => {
           const isActive = pathname === item.href
 

@@ -163,6 +163,8 @@ CREATE TABLE events (
     title VARCHAR(255) NOT NULL,
     description TEXT,
     event_date TIMESTAMP WITH TIME ZONE NOT NULL,
+    status VARCHAR(50) DEFAULT 'scheduled',
+    image_url VARCHAR(500),
     location VARCHAR(255),
     created_by UUID NOT NULL REFERENCES users(id),
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,

@@ -43,6 +43,11 @@ export enum NotificationType {
   GENERAL = 'general',
 }
 
+export enum EventStatus {
+  SCHEDULED = 'scheduled',
+  CANCELLED = 'cancelled',
+}
+
 export enum ChurchProgram {
   DCA_BASIC = 'dca_basic',
   DCA_ADVANCE = 'dca_advance',
@@ -129,6 +134,19 @@ export interface Sermon {
   duration?: number;
   uploadedBy: string;
   views: number;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface Event {
+  id: string;
+  title: string;
+  description?: string;
+  eventDate: Date;
+  status: EventStatus;
+  imageUrl?: string;
+  address?: string;
+  createdBy: string;
   createdAt: Date;
   updatedAt: Date;
 }
