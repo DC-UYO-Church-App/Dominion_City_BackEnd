@@ -3,7 +3,6 @@
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Calendar, CheckCircle, QrCode, UserPlus } from "lucide-react"
 import {
   Dialog,
@@ -20,14 +19,6 @@ export function AttendanceScreen() {
   const [isCheckInDialogOpen, setIsCheckInDialogOpen] = useState(false)
   const [isFirstTimeVisitor, setIsFirstTimeVisitor] = useState(false)
   const [isConfirmationOpen, setIsConfirmationOpen] = useState(false)
-
-  // Mock attendance data
-  const attendanceHistory = [
-    { date: "May 26, 2025", service: "Sunday Service", status: "Present" },
-    { date: "May 19, 2025", service: "Sunday Service", status: "Present" },
-    { date: "May 12, 2025", service: "Sunday Service", status: "Absent" },
-    { date: "May 5, 2025", service: "Sunday Service", status: "Present" },
-  ]
 
   const handleCheckIn = () => {
     setIsCheckInDialogOpen(false)
@@ -73,58 +64,16 @@ export function AttendanceScreen() {
         </CardFooter>
       </Card>
 
-      <Tabs defaultValue="weekly">
-        <div className="flex justify-between items-center mb-4">
-          <h2 className="text-lg font-bold">Attendance History</h2>
-          <TabsList>
-            <TabsTrigger value="weekly">Weekly</TabsTrigger>
-            <TabsTrigger value="monthly">Monthly</TabsTrigger>
-          </TabsList>
-        </div>
-
-        <TabsContent value="weekly" className="space-y-4">
-          {attendanceHistory.map((record, index) => (
-            <Card key={index}>
-              <CardContent className="p-0">
-                <div className="flex items-center p-4">
-                  <div
-                    className={`w-10 h-10 rounded-full flex items-center justify-center mr-3 ${
-                      record.status === "Present" ? "bg-green-100" : "bg-red-100"
-                    }`}
-                  >
-                    {record.status === "Present" ? (
-                      <CheckCircle className="h-5 w-5 text-green-600" />
-                    ) : (
-                      <span className="h-5 w-5 rounded-full border-2 border-red-500"></span>
-                    )}
-                  </div>
-                  <div>
-                    <h3 className="font-semibold">{record.service}</h3>
-                    <p className="text-xs text-muted-foreground">{record.date}</p>
-                  </div>
-                  <div
-                    className={`ml-auto text-sm font-medium ${
-                      record.status === "Present" ? "text-green-600" : "text-red-500"
-                    }`}
-                  >
-                    {record.status}
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </TabsContent>
-
-        <TabsContent value="monthly">
-          <Card>
-            <CardContent className="pt-6">
-              <div className="text-center py-8">
-                <p className="text-muted-foreground">Monthly view coming soon</p>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
+      <div className="space-y-4">
+        <h2 className="text-lg font-bold">Attendance History</h2>
+        <Card>
+          <CardContent className="pt-6">
+            <div className="text-center py-8">
+              <p className="text-muted-foreground">No attendance history yet.</p>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
 
       {/* Check-in Dialog */}
       <Dialog open={isCheckInDialogOpen} onOpenChange={setIsCheckInDialogOpen}>

@@ -1,13 +1,7 @@
 import { FastifyRequest, FastifyReply } from 'fastify';
 import { UserRole } from '../types';
 
-export interface AuthenticatedRequest extends FastifyRequest {
-  user?: {
-    id: string;
-    email: string;
-    role: UserRole;
-  };
-}
+export type AuthenticatedRequest = FastifyRequest;
 
 export const authenticate = async (
   request: AuthenticatedRequest,

@@ -38,9 +38,14 @@ export class AuthController {
 
   static async login(request: FastifyRequest, reply: FastifyReply) {
     try {
-      const { email, password } = request.body as any;
+      const { email, phoneNumber, identifier, password } = request.body as any;
 
-      const user = await UserService.validateCredentials(email, password);
+      const loginIdentifier = identifier || phoneNumber || email;
+      if (!loginIdentifier || !password) {
+        return reply.status(400).send({ error: 'Identifier and password are required' });
+      }
+
+      const user = await UserService.validateCredentialsWithIdentifier(loginIdentifier, password);
 
       if (!user) {
         return reply.status(401).send({ error: 'Invalid credentials' });

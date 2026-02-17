@@ -19,7 +19,7 @@ export default function Home() {
           </div>
           <div className="flex items-center gap-2 text-xs sm:gap-3 sm:text-sm">
             <a
-              href="/welcome"
+              href="/login"
               className="rounded-full border border-white/60 px-4 py-2 text-white/90 transition hover:border-white hover:text-white sm:px-5"
             >
               Login
@@ -38,7 +38,13 @@ export default function Home() {
               Dominion City
             </p>
             <h1 className="mt-4 text-4xl font-semibold leading-tight sm:text-5xl">
-              <TypewriterText text="One story. One space. One horizon." />
+              <TypewriterText
+                texts={[
+                  "A place to worship, grow, and belong.",
+                  "Faith. Family. Fellowship.",
+                  "Come as you are. Leave renewed.",
+                ]}
+              />
             </h1>
             <p className="mt-4 text-sm text-white/80 sm:text-base">
               A single, immersive section built to fill the entire viewport.

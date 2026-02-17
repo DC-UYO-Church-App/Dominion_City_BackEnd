@@ -62,7 +62,7 @@ async function registerPlugins() {
 // Register routes
 async function registerRoutes() {
   // Health check
-  fastify.get('/health', async (request, reply) => {
+  fastify.get('/health', async () => {
     return { status: 'ok', timestamp: new Date().toISOString() };
   });
 
@@ -75,8 +75,8 @@ async function registerRoutes() {
 
   // WebSocket for real-time messaging
   fastify.register(async function (fastify) {
-    fastify.get('/ws/messages', { websocket: true }, (connection, req) => {
-      connection.socket.on('message', (message) => {
+    fastify.get('/ws/messages', { websocket: true }, (connection, _req) => {
+      connection.socket.on('message', (message: Buffer) => {
         // Handle incoming messages
         connection.socket.send(JSON.stringify({ echo: message.toString() }));
       });

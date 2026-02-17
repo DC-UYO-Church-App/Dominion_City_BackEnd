@@ -2,7 +2,7 @@ import { FastifyRequest, FastifyReply } from 'fastify';
 
 export const errorHandler = (
   error: Error,
-  request: FastifyRequest,
+  _request: FastifyRequest,
   reply: FastifyReply
 ) => {
   console.error('Error:', error);
@@ -39,7 +39,7 @@ export const errorHandler = (
   }
 
   // Default error
-  reply.status(500).send({
+  return reply.status(500).send({
     error: 'Internal server error',
     message: error.message,
   });

@@ -4,21 +4,24 @@ import { useEffect, useState } from "react"
 import { cn } from "@/lib/utils"
 
 type TypewriterTextProps = {
-  text: string
+  texts: string[]
   className?: string
   speedMs?: number
   startDelayMs?: number
+  pauseMs?: number
   showCursor?: boolean
 }
 
 export function TypewriterText({
-  text,
+  texts,
   className,
   speedMs = 45,
   startDelayMs = 300,
+  pauseMs = 1400,
   showCursor = true,
 }: TypewriterTextProps) {
   const [visibleCount, setVisibleCount] = useState(0)
+  const [activeIndex, setActiveIndex] = useState(0)
 
   useEffect(() => {
     let timeoutId: ReturnType<typeof setTimeout> | null = null
@@ -28,8 +31,14 @@ export function TypewriterText({
       const tick = () => {
         index += 1
         setVisibleCount(index)
-        if (index < text.length) {
+        if (index < texts[activeIndex].length) {
           timeoutId = setTimeout(tick, speedMs)
+        } else {
+          timeoutId = setTimeout(() => {
+            index = 0
+            setVisibleCount(0)
+            setActiveIndex((prev) => (prev + 1) % texts.length)
+          }, pauseMs)
         }
       }
 
@@ -43,11 +52,14 @@ export function TypewriterText({
         clearTimeout(timeoutId)
       }
     }
-  }, [text, speedMs, startDelayMs])
+  }, [texts, activeIndex, speedMs, startDelayMs, pauseMs])
 
   return (
-    <span className={cn("inline-block align-top", className)} aria-label={text}>
-      {text.slice(0, visibleCount)}
+    <span
+      className={cn("inline-block align-top", className)}
+      aria-label={texts[activeIndex]}
+    >
+      {texts[activeIndex].slice(0, visibleCount)}
       {showCursor ? <span className="typewriter-cursor">|</span> : null}
     </span>
   )

@@ -59,16 +59,20 @@ class ApiClient {
     dateOfBirth?: string;
     address?: string;
   }) {
-    return this.request('/auth/register', {
+    const response = await this.request('/auth/register', {
       method: 'POST',
       body: JSON.stringify(data),
     });
+    if (response.token) {
+      this.setToken(response.token);
+    }
+    return response;
   }
 
-  async login(email: string, password: string) {
+  async login(identifier: string, password: string) {
     const response = await this.request('/auth/login', {
       method: 'POST',
-      body: JSON.stringify({ email, password }),
+      body: JSON.stringify({ identifier, password }),
     });
     if (response.token) {
       this.setToken(response.token);

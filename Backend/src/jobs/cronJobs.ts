@@ -1,5 +1,4 @@
 import Queue from 'bull';
-import redis from '../config/redis';
 import { config } from '../config';
 import { AttendanceService } from '../services/attendanceService';
 import { TitheService } from '../services/titheService';
@@ -33,7 +32,7 @@ export const titheReminderQueue = new Queue('tithe-reminders', {
 });
 
 // Birthday notification processor
-birthdayQueue.process(async (job) => {
+birthdayQueue.process(async (_job) => {
   console.log('Processing birthday notifications...');
 
   const result = await query(
@@ -57,14 +56,14 @@ birthdayQueue.process(async (job) => {
 });
 
 // Absence notification processor
-absenceQueue.process(async (job) => {
+absenceQueue.process(async (_job) => {
   console.log('Processing absence notifications...');
   await AttendanceService.checkAndNotifyAbsences();
   console.log('Absence notifications processed');
 });
 
 // Tithe reminder processor
-titheReminderQueue.process(async (job) => {
+titheReminderQueue.process(async (_job) => {
   console.log('Processing tithe reminders...');
   await TitheService.checkAndNotifyMissedTithes();
   console.log('Tithe reminders processed');

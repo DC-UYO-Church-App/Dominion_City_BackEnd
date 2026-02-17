@@ -1,4 +1,5 @@
 import dotenv from 'dotenv';
+import path from 'path';
 
 dotenv.config();
 
@@ -24,13 +25,13 @@ export const config = {
     port: parseInt(process.env.REDIS_PORT || '6379', 10),
     password: process.env.REDIS_PASSWORD || undefined,
   },
-  sendgrid: {
-    apiKey: process.env.SENDGRID_API_KEY || '',
-    fromEmail: process.env.SENDGRID_FROM_EMAIL || 'noreply@dominioncityuyo.org',
-    fromName: process.env.SENDGRID_FROM_NAME || 'Dominion City Uyo',
+  resend: {
+    apiKey: process.env.RESEND_API_KEY || '',
+    fromEmail: process.env.RESEND_FROM_EMAIL || 'noreply@dominioncityuyo.org',
+    fromName: process.env.RESEND_FROM_NAME || 'Dominion City Uyo',
   },
   upload: {
-    dir: process.env.UPLOAD_DIR || './uploads',
+    dir: path.resolve(process.env.UPLOAD_DIR || './uploads'),
     maxFileSize: parseInt(process.env.MAX_FILE_SIZE || '10485760', 10), // 10MB
   },
   cors: {

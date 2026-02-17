@@ -73,11 +73,47 @@ export class UserService {
     return this.mapDbRowToUserWithPassword(result.rows[0]);
   }
 
+  static async getUserByPhoneNumber(phoneNumber: string): Promise<User | null> {
+    const result = await query(
+      `SELECT * FROM users WHERE phone_number = $1`,
+      [phoneNumber]
+    );
+
+    if (result.rows.length === 0) {
+      return null;
+    }
+
+    return this.mapDbRowToUserWithPassword(result.rows[0]);
+  }
+
   static async validateCredentials(
     email: string,
     password: string
   ): Promise<Omit<User, 'password'> | null> {
     const user = await this.getUserByEmail(email);
+
+    if (!user || !user.isActive) {
+      return null;
+    }
+
+    const isValid = await comparePassword(password, user.password);
+
+    if (!isValid) {
+      return null;
+    }
+
+    const { password: _, ...userWithoutPassword } = user;
+    return userWithoutPassword;
+  }
+
+  static async validateCredentialsWithIdentifier(
+    identifier: string,
+    password: string
+  ): Promise<Omit<User, 'password'> | null> {
+    const isEmail = identifier.includes('@');
+    const user = isEmail
+      ? await this.getUserByEmail(identifier)
+      : await this.getUserByPhoneNumber(identifier);
 
     if (!user || !user.isActive) {
       return null;

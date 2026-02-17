@@ -37,8 +37,8 @@ export function BottomNavigation() {
   ]
 
   return (
-    <div className="sticky bottom-0 z-40 w-full border-t bg-white">
-      <nav className="flex h-16">
+    <div className="fixed bottom-4 left-1/2 z-40 w-[92%] max-w-3xl -translate-x-1/2">
+      <nav className="flex h-16 rounded-2xl border border-white/20 bg-white/25 shadow-xl backdrop-blur-2xl">
         {navItems.map((item) => {
           const isActive = pathname === item.href
 
@@ -48,7 +48,7 @@ export function BottomNavigation() {
               href={item.href}
               className={cn(
                 "flex flex-1 flex-col items-center justify-center",
-                isActive ? "text-[#00369a]" : "text-gray-500",
+                isActive ? "text-white" : "text-white/70",
               )}
             >
               <item.icon className="h-5 w-5" />

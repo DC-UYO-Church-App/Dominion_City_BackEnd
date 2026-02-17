@@ -42,7 +42,7 @@ export class CellGroupController {
     }
   }
 
-  static async getAllCellGroups(request: FastifyRequest, reply: FastifyReply) {
+  static async getAllCellGroups(_request: FastifyRequest, reply: FastifyReply) {
     try {
       const cellGroups = await CellGroupService.getAllCellGroups();
 

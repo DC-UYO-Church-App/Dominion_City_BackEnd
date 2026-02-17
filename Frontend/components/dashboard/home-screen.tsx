@@ -8,11 +8,29 @@ import { Badge } from "@/components/ui/badge"
 import Link from "next/link"
 
 export function HomeScreen() {
+  const todayLabel = new Date().toLocaleDateString("en-US", {
+    weekday: "long",
+    month: "long",
+    day: "numeric",
+    year: "numeric",
+  })
+
+  const formatEventDate = (date: Date) =>
+    date.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })
+
+  const getNextWeekday = (weekday: number) => {
+    const today = new Date()
+    const currentDay = today.getDay()
+    const daysAhead = (weekday + 7 - currentDay) % 7 || 7
+    const nextDate = new Date(today)
+    nextDate.setDate(today.getDate() + daysAhead)
+    return nextDate
+  }
+
   // Mock data
   const upcomingEvents = [
-    { id: 1, title: "Sunday Service", date: "May 30, 2025", time: "9:00 AM" },
-    { id: 2, title: "Midweek Service", date: "June 2, 2025", time: "6:00 PM" },
-    { id: 3, title: "Prayer Meeting", date: "June 5, 2025", time: "7:00 PM" },
+    { id: 1, title: "Sunday Service", date: formatEventDate(getNextWeekday(0)), time: "8:00 AM" },
+    { id: 2, title: "Midweek Service", date: formatEventDate(getNextWeekday(3)), time: "6:00 PM" },
   ]
 
   const announcements = [
@@ -42,7 +60,7 @@ export function HomeScreen() {
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-2xl font-bold text-[#00369a]">Welcome, John!</h1>
-          <p className="text-gray-600">Sunday, May 29, 2025</p>
+          <p className="text-gray-600">{todayLabel}</p>
         </div>
         <Button variant="ghost" size="icon" className="relative">
           <Bell className="h-5 w-5" />
@@ -60,19 +78,19 @@ export function HomeScreen() {
           <div className="w-10 h-10 rounded-full bg-[#00369a]/10 flex items-center justify-center mb-2">
             <CheckCircle className="h-5 w-5 text-[#00369a]" />
           </div>
-          <span className="text-xs text-center">Check-in</span>
+          <span className="text-xs text-center text-slate-900">Check-in</span>
         </Link>
         <Link href="/dashboard/sermons" className="flex flex-col items-center p-3 bg-white rounded-lg shadow-sm border">
           <div className="w-10 h-10 rounded-full bg-[#00369a]/10 flex items-center justify-center mb-2">
             <Headphones className="h-5 w-5 text-[#00369a]" />
           </div>
-          <span className="text-xs text-center">Sermons</span>
+          <span className="text-xs text-center text-slate-900">Sermons</span>
         </Link>
         <Link href="/dashboard/tithing" className="flex flex-col items-center p-3 bg-white rounded-lg shadow-sm border">
           <div className="w-10 h-10 rounded-full bg-[#00369a]/10 flex items-center justify-center mb-2">
             <span className="font-bold text-[#00369a]">₦</span>
           </div>
-          <span className="text-xs text-center">Give</span>
+          <span className="text-xs text-center text-slate-900">Give</span>
         </Link>
       </div>
 
