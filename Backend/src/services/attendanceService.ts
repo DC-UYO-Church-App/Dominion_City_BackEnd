@@ -6,6 +6,7 @@ import { config } from '../config';
 export class AttendanceService {
   static async recordAttendance(data: {
     userId: string;
+    eventId?: string;
     serviceDate: Date;
     checkInTime: Date;
     status?: AttendanceStatus;
@@ -13,13 +14,14 @@ export class AttendanceService {
     notes?: string;
   }): Promise<Attendance> {
     const result = await query(
-      `INSERT INTO attendance (user_id, service_date, check_in_time, status, is_first_timer, notes)
-       VALUES ($1, $2, $3, $4, $5, $6)
-       ON CONFLICT (user_id, service_date) 
-       DO UPDATE SET check_in_time = $3, status = $4, notes = $6
+      `INSERT INTO attendance (user_id, event_id, service_date, check_in_time, status, is_first_timer, notes)
+       VALUES ($1, $2, $3, $4, $5, $6, $7)
+       ON CONFLICT (user_id, event_id) 
+       DO UPDATE SET check_in_time = $4, status = $5, notes = $7
        RETURNING *`,
       [
         data.userId,
+        data.eventId || null,
         data.serviceDate,
         data.checkInTime,
         data.status || AttendanceStatus.PRESENT,
@@ -48,23 +50,23 @@ export class AttendanceService {
     startDate?: Date,
     endDate?: Date
   ): Promise<Attendance[]> {
-    let queryText = `SELECT * FROM attendance WHERE user_id = $1`;
+    let queryText = `SELECT a.*, e.title as event_title FROM attendance a LEFT JOIN events e ON a.event_id = e.id WHERE a.user_id = $1`;
     const values: any[] = [userId];
     let paramCount = 2;
 
     if (startDate) {
-      queryText += ` AND service_date >= $${paramCount}`;
+      queryText += ` AND a.service_date >= $${paramCount}`;
       values.push(startDate);
       paramCount++;
     }
 
     if (endDate) {
-      queryText += ` AND service_date <= $${paramCount}`;
+      queryText += ` AND a.service_date <= $${paramCount}`;
       values.push(endDate);
       paramCount++;
     }
 
-    queryText += ' ORDER BY service_date DESC';
+    queryText += ' ORDER BY a.check_in_time DESC';
 
     const result = await query(queryText, values);
 
@@ -205,6 +207,8 @@ export class AttendanceService {
     return {
       id: row.id,
       userId: row.user_id,
+      eventId: row.event_id,
+      eventTitle: row.event_title || undefined,
       serviceDate: row.service_date,
       checkInTime: row.check_in_time,
       status: row.status as AttendanceStatus,

@@ -6,10 +6,11 @@ import { AttendanceStatus } from '../types';
 export class AttendanceController {
   static async recordAttendance(request: AuthenticatedRequest, reply: FastifyReply) {
     try {
-      const { userId, serviceDate, checkInTime, status, isFirstTimer, notes } = request.body as any;
+      const { userId, eventId, serviceDate, checkInTime, status, isFirstTimer, notes } = request.body as any;
 
       const attendance = await AttendanceService.recordAttendance({
         userId,
+        eventId,
         serviceDate: new Date(serviceDate),
         checkInTime: new Date(checkInTime || Date.now()),
         status: status as AttendanceStatus,

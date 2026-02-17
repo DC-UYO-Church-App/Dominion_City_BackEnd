@@ -117,6 +117,7 @@ class ApiClient {
   // Attendance
   async recordAttendance(data: {
     userId: string;
+    eventId?: string;
     serviceDate: string;
     checkInTime?: string;
     status?: string;

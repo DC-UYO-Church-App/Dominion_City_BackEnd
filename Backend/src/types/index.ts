@@ -101,6 +101,8 @@ export interface CellGroup {
 export interface Attendance {
   id: string;
   userId: string;
+  eventId?: string | null;
+  eventTitle?: string;
   serviceDate: Date;
   checkInTime: Date;
   status: AttendanceStatus;

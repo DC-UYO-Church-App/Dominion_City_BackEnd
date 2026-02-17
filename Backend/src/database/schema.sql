@@ -63,13 +63,14 @@ ALTER TABLE cell_groups ADD CONSTRAINT fk_cell_leader
 CREATE TABLE attendance (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    event_id UUID REFERENCES events(id) ON DELETE SET NULL,
     service_date DATE NOT NULL,
     check_in_time TIMESTAMP WITH TIME ZONE NOT NULL,
     status attendance_status NOT NULL DEFAULT 'present',
     is_first_timer BOOLEAN DEFAULT false,
     notes TEXT,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    UNIQUE(user_id, service_date)
+    UNIQUE(user_id, event_id)
 );
 
 -- Tithes table

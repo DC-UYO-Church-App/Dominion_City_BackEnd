@@ -22,9 +22,11 @@ export function AttendanceScreen() {
   const [isConfirmationOpen, setIsConfirmationOpen] = useState(false)
   const [userId, setUserId] = useState<string | null>(null)
   const [history, setHistory] = useState<
-    { id: string; serviceDate: string; status: string; title: string }[]
+    { id: string; serviceDate: string; status: string; title: string; eventId?: string | null }[]
   >([])
   const [isLoadingHistory, setIsLoadingHistory] = useState(true)
+  const [events, setEvents] = useState<any[]>([])
+  const [isLoadingEvents, setIsLoadingEvents] = useState(true)
 
   const today = useMemo(() => new Date(), [])
   const todayLabel = today.toLocaleDateString("en-US", {
@@ -34,15 +36,27 @@ export function AttendanceScreen() {
     year: "numeric",
   })
 
-  const eventSchedule = [
-    { day: 0, title: "Sunday Service", time: "9:00 AM - 11:30 AM" },
-    { day: 3, title: "Midweek Service", time: "6:00 PM - 7:30 PM" },
-  ]
+  const todaysEvents = useMemo(() => {
+    const todayDate = today.toISOString().slice(0, 10)
+    return events
+      .map((event) => ({
+        ...event,
+        eventDate: event.eventDate ? new Date(event.eventDate) : null,
+      }))
+      .filter(
+        (event) =>
+          event.eventDate &&
+          event.status !== "cancelled" &&
+          event.eventDate.toISOString().slice(0, 10) === todayDate
+      )
+      .sort((a, b) => a.eventDate.getTime() - b.eventDate.getTime())
+  }, [events, today])
+
+  const checkedEventIds = useMemo(() => new Set(history.map((record) => record.eventId).filter(Boolean)), [history])
 
   const activeEvent = useMemo(() => {
-    const todayDay = today.getDay()
-    return eventSchedule.find((event) => event.day === todayDay) || null
-  }, [today])
+    return todaysEvents.find((event) => !checkedEventIds.has(event.id)) || null
+  }, [todaysEvents, checkedEventIds])
 
   useEffect(() => {
     apiClient
@@ -65,7 +79,8 @@ export function AttendanceScreen() {
             year: "numeric",
           }),
           status: record.status,
-          title: record.notes || "Service",
+          title: record.eventTitle || record.notes || "Service",
+          eventId: record.eventId,
         }))
         setHistory(mapped)
       })
@@ -73,6 +88,14 @@ export function AttendanceScreen() {
         setHistory([])
       })
       .finally(() => setIsLoadingHistory(false))
+  }, [])
+
+  useEffect(() => {
+    apiClient
+      .getEvents()
+      .then((response) => setEvents(response.events || []))
+      .catch(() => setEvents([]))
+      .finally(() => setIsLoadingEvents(false))
   }, [])
 
   const handleCheckIn = async () => {
@@ -83,6 +106,7 @@ export function AttendanceScreen() {
     try {
       await apiClient.recordAttendance({
         userId,
+        eventId: activeEvent.id,
         serviceDate: today.toISOString().slice(0, 10),
         status: "present",
         isFirstTimer: isFirstTimeVisitor,
@@ -98,6 +122,7 @@ export function AttendanceScreen() {
         }),
         status: "present",
         title: activeEvent.title,
+        eventId: activeEvent.id,
       }
       setHistory((prev) => [newRecord, ...prev])
       setTimeout(() => {
@@ -125,10 +150,24 @@ export function AttendanceScreen() {
             <div className="w-16 h-16 rounded-full bg-church-gold/20 flex items-center justify-center">
               <Calendar className="h-8 w-8 text-church-gold" />
             </div>
-            {activeEvent ? (
+            {isLoadingEvents ? (
+              <div>
+                <h3 className="font-semibold text-lg">Loading events...</h3>
+              </div>
+            ) : activeEvent ? (
               <div>
                 <h3 className="font-semibold text-lg">{activeEvent.title}</h3>
-                <p className="text-sm text-muted-foreground">{activeEvent.time}</p>
+                <p className="text-sm text-muted-foreground">
+                  {activeEvent.eventDate.toLocaleTimeString("en-US", {
+                    hour: "numeric",
+                    minute: "2-digit",
+                  })}
+                </p>
+                {todaysEvents.length > 1 ? (
+                  <p className="text-xs text-muted-foreground">
+                    {todaysEvents.length - checkedEventIds.size} event(s) remaining today.
+                  </p>
+                ) : null}
               </div>
             ) : (
               <div>
