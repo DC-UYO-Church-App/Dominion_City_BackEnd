@@ -6,8 +6,25 @@ import { Bell, Calendar, CheckCircle, ChevronRight, Clock, Headphones } from "lu
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel"
 import { Badge } from "@/components/ui/badge"
 import Link from "next/link"
+import { useEffect, useState } from "react"
+import { apiClient } from "@/lib/api"
 
 export function HomeScreen() {
+  const [firstName, setFirstName] = useState("Member")
+
+  useEffect(() => {
+    apiClient
+      .getProfile()
+      .then((response) => {
+        if (response?.user?.firstName) {
+          setFirstName(response.user.firstName)
+        }
+      })
+      .catch(() => {
+        // Keep default name on error
+      })
+  }, [])
+
   const todayLabel = new Date().toLocaleDateString("en-US", {
     weekday: "long",
     month: "long",
@@ -59,7 +76,7 @@ export function HomeScreen() {
       {/* Welcome Section */}
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-2xl font-bold text-[#00369a]">Welcome, John!</h1>
+          <h1 className="text-2xl font-bold text-[#00369a]">Welcome, {firstName}!</h1>
           <p className="text-gray-600">{todayLabel}</p>
         </div>
         <Button variant="ghost" size="icon" className="relative">

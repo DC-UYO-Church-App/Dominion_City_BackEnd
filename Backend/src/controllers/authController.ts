@@ -1,6 +1,9 @@
 import { FastifyRequest, FastifyReply } from 'fastify';
 import { UserService } from '../services/userService';
 import { AuthenticatedRequest } from '../middleware/auth';
+import fs from 'fs/promises';
+import path from 'path';
+import { config } from '../config';
 
 export class AuthController {
   static async register(request: FastifyRequest, reply: FastifyReply) {
@@ -94,6 +97,48 @@ export class AuthController {
     } catch (error) {
       console.error('Update profile error:', error);
       reply.status(500).send({ error: 'Failed to update profile' });
+    }
+  }
+
+  static async uploadProfileImage(request: AuthenticatedRequest, reply: FastifyReply) {
+    try {
+      const fileRequest = request as FastifyRequest & {
+        file: () => Promise<{
+          filename: string;
+          mimetype: string;
+          file: NodeJS.ReadableStream;
+        }>;
+      };
+
+      const file = await fileRequest.file();
+      if (!file) {
+        return reply.status(400).send({ error: 'No file uploaded' });
+      }
+
+      const allowedTypes = ['image/jpeg', 'image/png'];
+      if (!allowedTypes.includes(file.mimetype)) {
+        return reply.status(400).send({ error: 'Only JPG or PNG images are allowed' });
+      }
+
+      await fs.mkdir(config.upload.dir, { recursive: true });
+
+      const safeName = file.filename.replace(/[^a-zA-Z0-9._-]/g, '_');
+      const filename = `${request.user!.id}-${Date.now()}-${safeName}`;
+      const filePath = path.join(config.upload.dir, filename);
+
+      const chunks: Buffer[] = [];
+      for await (const chunk of file.file) {
+        chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
+      }
+      await fs.writeFile(filePath, Buffer.concat(chunks));
+
+      const imageUrl = `/uploads/${filename}`;
+      const user = await UserService.updateUser(request.user!.id, { profileImage: imageUrl });
+
+      reply.send({ user, imageUrl });
+    } catch (error) {
+      console.error('Upload profile image error:', error);
+      reply.status(500).send({ error: 'Failed to upload profile image' });
     }
   }
 }

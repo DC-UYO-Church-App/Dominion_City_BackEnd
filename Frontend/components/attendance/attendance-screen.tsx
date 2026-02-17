@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Calendar, CheckCircle, QrCode, UserPlus } from "lucide-react"
@@ -14,20 +14,98 @@ import {
 } from "@/components/ui/dialog"
 import { Switch } from "@/components/ui/switch"
 import { Label } from "@/components/ui/label"
+import { apiClient } from "@/lib/api"
 
 export function AttendanceScreen() {
   const [isCheckInDialogOpen, setIsCheckInDialogOpen] = useState(false)
   const [isFirstTimeVisitor, setIsFirstTimeVisitor] = useState(false)
   const [isConfirmationOpen, setIsConfirmationOpen] = useState(false)
+  const [userId, setUserId] = useState<string | null>(null)
+  const [history, setHistory] = useState<
+    { id: string; serviceDate: string; status: string; title: string }[]
+  >([])
+  const [isLoadingHistory, setIsLoadingHistory] = useState(true)
 
-  const handleCheckIn = () => {
+  const today = useMemo(() => new Date(), [])
+  const todayLabel = today.toLocaleDateString("en-US", {
+    weekday: "long",
+    month: "long",
+    day: "numeric",
+    year: "numeric",
+  })
+
+  const eventSchedule = [
+    { day: 0, title: "Sunday Service", time: "9:00 AM - 11:30 AM" },
+    { day: 3, title: "Midweek Service", time: "6:00 PM - 7:30 PM" },
+  ]
+
+  const activeEvent = useMemo(() => {
+    const todayDay = today.getDay()
+    return eventSchedule.find((event) => event.day === todayDay) || null
+  }, [today])
+
+  useEffect(() => {
+    apiClient
+      .getProfile()
+      .then((response) => {
+        const profile = response?.user
+        if (profile?.id) {
+          setUserId(profile.id)
+          return apiClient.getUserAttendance(profile.id)
+        }
+        return null
+      })
+      .then((attendanceResponse) => {
+        if (!attendanceResponse?.attendance) return
+        const mapped = attendanceResponse.attendance.map((record: any) => ({
+          id: record.id,
+          serviceDate: new Date(record.serviceDate).toLocaleDateString("en-US", {
+            month: "long",
+            day: "numeric",
+            year: "numeric",
+          }),
+          status: record.status,
+          title: record.notes || "Service",
+        }))
+        setHistory(mapped)
+      })
+      .catch(() => {
+        setHistory([])
+      })
+      .finally(() => setIsLoadingHistory(false))
+  }, [])
+
+  const handleCheckIn = async () => {
+    if (!userId || !activeEvent) {
+      return
+    }
     setIsCheckInDialogOpen(false)
-    setIsConfirmationOpen(true)
-
-    // In a real app, we would submit the check-in data
-    setTimeout(() => {
+    try {
+      await apiClient.recordAttendance({
+        userId,
+        serviceDate: today.toISOString().slice(0, 10),
+        status: "present",
+        isFirstTimer: isFirstTimeVisitor,
+        notes: activeEvent.title,
+      })
+      setIsConfirmationOpen(true)
+      const newRecord = {
+        id: `${userId}-${today.toISOString()}`,
+        serviceDate: today.toLocaleDateString("en-US", {
+          month: "long",
+          day: "numeric",
+          year: "numeric",
+        }),
+        status: "present",
+        title: activeEvent.title,
+      }
+      setHistory((prev) => [newRecord, ...prev])
+      setTimeout(() => {
+        setIsConfirmationOpen(false)
+      }, 2000)
+    } catch {
       setIsConfirmationOpen(false)
-    }, 2000)
+    }
   }
 
   return (
@@ -40,23 +118,31 @@ export function AttendanceScreen() {
       <Card>
         <CardHeader className="bg-church-gold/10 border-b">
           <CardTitle className="text-lg">Today&apos;s Service</CardTitle>
-          <CardDescription>Sunday, May 29, 2025</CardDescription>
+          <CardDescription>{todayLabel}</CardDescription>
         </CardHeader>
         <CardContent className="pt-6">
           <div className="flex flex-col items-center justify-center text-center space-y-4">
             <div className="w-16 h-16 rounded-full bg-church-gold/20 flex items-center justify-center">
               <Calendar className="h-8 w-8 text-church-gold" />
             </div>
-            <div>
-              <h3 className="font-semibold text-lg">Sunday Service</h3>
-              <p className="text-sm text-muted-foreground">9:00 AM - 11:30 AM</p>
-            </div>
+            {activeEvent ? (
+              <div>
+                <h3 className="font-semibold text-lg">{activeEvent.title}</h3>
+                <p className="text-sm text-muted-foreground">{activeEvent.time}</p>
+              </div>
+            ) : (
+              <div>
+                <h3 className="font-semibold text-lg">No event today</h3>
+                <p className="text-sm text-muted-foreground">Check back on the next service day.</p>
+              </div>
+            )}
           </div>
         </CardContent>
         <CardFooter className="flex justify-center border-t pt-4">
           <Button
             onClick={() => setIsCheckInDialogOpen(true)}
             className="bg-church-gold hover:bg-amber-400 text-church-navy"
+            disabled={!activeEvent}
           >
             <CheckCircle className="mr-2 h-4 w-4" />
             Check-in Now
@@ -68,9 +154,32 @@ export function AttendanceScreen() {
         <h2 className="text-lg font-bold">Attendance History</h2>
         <Card>
           <CardContent className="pt-6">
-            <div className="text-center py-8">
-              <p className="text-muted-foreground">No attendance history yet.</p>
-            </div>
+            {isLoadingHistory ? (
+              <div className="text-center py-8">
+                <p className="text-muted-foreground">Loading attendance history...</p>
+              </div>
+            ) : history.length === 0 ? (
+              <div className="text-center py-8">
+                <p className="text-muted-foreground">No attendance history yet.</p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {history.map((record) => (
+                  <div
+                    key={record.id}
+                    className="flex items-center justify-between rounded-lg border border-border p-4"
+                  >
+                    <div>
+                      <p className="font-semibold">{record.title}</p>
+                      <p className="text-xs text-muted-foreground">{record.serviceDate}</p>
+                    </div>
+                    <span className="text-xs font-semibold uppercase text-emerald-600">
+                      {record.status}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>

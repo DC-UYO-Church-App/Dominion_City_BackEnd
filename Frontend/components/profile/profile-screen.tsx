@@ -22,22 +22,143 @@ import {
 } from "lucide-react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
+import { useEffect, useMemo, useRef, useState } from "react"
+import { apiClient } from "@/lib/api"
+import { useToast } from "@/hooks/use-toast"
 
 export function ProfileScreen() {
   const router = useRouter()
+  const fileInputRef = useRef<HTMLInputElement | null>(null)
+  const { toast } = useToast()
+  const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000/api"
+  const uploadsBaseUrl = apiBaseUrl.replace(/\/api$/, "")
+  const [isEditingAddress, setIsEditingAddress] = useState(false)
+  const [addressDraft, setAddressDraft] = useState("")
 
-  // Mock user data
-  const user = {
-    name: "John Doe",
-    email: "john.doe@example.com",
-    phone: "+234 800 123 4567",
-    address: "15 Park Avenue, Lekki, Lagos",
-    cellGroup: "Faith Builders Cell",
+  const [user, setUser] = useState<{
+    firstName: string
+    lastName: string
+    email: string
+    phone: string
+    address?: string
+    cellGroup?: string
+    role: string
+    memberSince: string
+    teams: string[]
+    avatar?: string
+  }>({
+    firstName: "Member",
+    lastName: "",
+    email: "",
+    phone: "",
+    address: "",
+    cellGroup: undefined,
     role: "Member",
-    memberSince: "2020",
-    department: "Worship Team",
+    memberSince: "",
+    teams: [],
     avatar: "/placeholder.svg?height=80&width=80",
+  })
+
+  useEffect(() => {
+    apiClient
+      .getProfile()
+      .then((response) => {
+        const profile = response?.user
+        if (!profile) return
+        setUser({
+          firstName: profile.firstName || "Member",
+          lastName: profile.lastName || "",
+          email: profile.email || "",
+          phone: profile.phoneNumber || "",
+          address: profile.address || "",
+          cellGroup: profile.cellGroupId || undefined,
+          role: profile.role ? `${profile.role}` : "Member",
+          memberSince: profile.joinDate ? new Date(profile.joinDate).getFullYear().toString() : "",
+          teams: [],
+          avatar: profile.profileImage
+            ? profile.profileImage.startsWith("/uploads/")
+              ? `${uploadsBaseUrl}${profile.profileImage}`
+              : profile.profileImage
+            : "/placeholder.svg?height=80&width=80",
+        })
+        setAddressDraft(profile.address || "")
+      })
+      .catch(() => {
+        // keep defaults on error
+      })
+  }, [])
+
+  const handleAvatarClick = () => {
+    fileInputRef.current?.click()
   }
+
+  const handleAvatarChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    if (!file) return
+
+    if (!file.type.startsWith("image/")) {
+      toast({
+        title: "Invalid file",
+        description: "Please select an image file.",
+        variant: "destructive",
+      })
+      return
+    }
+
+    try {
+      const response = await apiClient.uploadProfileImage(file)
+      const rawImageUrl = response?.imageUrl || response?.user?.profileImage
+      const imageUrl = rawImageUrl?.startsWith("/uploads/")
+        ? `${uploadsBaseUrl}${rawImageUrl}`
+        : rawImageUrl
+      if (imageUrl) {
+        setUser((prev) => ({ ...prev, avatar: imageUrl }))
+      }
+      toast({
+        title: "Profile updated",
+        description: "Your profile picture has been updated.",
+      })
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Upload failed"
+      toast({
+        title: "Upload failed",
+        description: message,
+        variant: "destructive",
+      })
+    } finally {
+      if (fileInputRef.current) fileInputRef.current.value = ""
+    }
+  }
+
+  const handleEditAddress = () => {
+    setAddressDraft(user.address || "")
+    setIsEditingAddress(true)
+  }
+
+  const handleSaveAddress = async () => {
+    try {
+      const response = await apiClient.updateProfile({ address: addressDraft })
+      const updatedAddress = response?.user?.address ?? addressDraft
+      setUser((prev) => ({ ...prev, address: updatedAddress }))
+      setIsEditingAddress(false)
+      toast({
+        title: "Address updated",
+        description: "Your address has been saved.",
+      })
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Update failed"
+      toast({
+        title: "Update failed",
+        description: message,
+        variant: "destructive",
+      })
+    }
+  }
+
+  const fullName = useMemo(
+    () => `${user.firstName} ${user.lastName}`.trim(),
+    [user.firstName, user.lastName]
+  )
 
   const handleLogout = () => {
     // In a real app, we would handle logout logic
@@ -84,7 +205,7 @@ export function ProfileScreen() {
       icon: Users,
       label: "My Cell Group",
       href: "/dashboard/cell-groups",
-      description: "Faith Builders Cell",
+      description: user.cellGroup ? user.cellGroup : "None",
     },
   ]
 
@@ -108,24 +229,45 @@ export function ProfileScreen() {
       <Card>
         <CardContent className="pt-6">
           <div className="flex items-center space-x-4">
-            <Avatar className="h-20 w-20">
-              <AvatarImage src={user.avatar || "/placeholder.svg"} alt={user.name} />
-              <AvatarFallback className="text-lg">{user.name.substring(0, 2)}</AvatarFallback>
-            </Avatar>
+            <div className="relative">
+              <Avatar className="h-20 w-20">
+                <AvatarImage src={user.avatar || "/placeholder.svg"} alt={fullName} />
+                <AvatarFallback className="text-lg">{fullName.substring(0, 2)}</AvatarFallback>
+              </Avatar>
+              <button
+                type="button"
+                onClick={handleAvatarClick}
+                className="absolute -bottom-1 -right-1 rounded-full bg-[#00369a] p-2 text-white shadow-md"
+              >
+                <Edit className="h-3.5 w-3.5" />
+              </button>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/jpeg,image/png"
+                className="hidden"
+                onChange={handleAvatarChange}
+              />
+            </div>
             <div className="flex-1">
-              <h2 className="text-xl font-bold">{user.name}</h2>
+              <h2 className="text-xl font-bold">{fullName}</h2>
               <p className="text-muted-foreground">
-                {user.role} since {user.memberSince}
+                {user.role}
+                {user.memberSince ? ` since ${user.memberSince}` : ""}
               </p>
-              <div className="flex items-center mt-2 space-x-2">
-                <Badge variant="secondary">{user.department}</Badge>
-                <Badge variant="outline">{user.cellGroup}</Badge>
+              <div className="flex flex-wrap items-center gap-2 mt-2">
+                {user.teams.length > 0 ? (
+                  user.teams.map((team) => (
+                    <Badge key={team} variant="secondary">
+                      {team}
+                    </Badge>
+                  ))
+                ) : (
+                  <Badge variant="secondary">No team yet</Badge>
+                )}
+                <Badge variant="outline">{user.cellGroup ? user.cellGroup : "No cell yet"}</Badge>
               </div>
             </div>
-            <Button variant="outline" size="sm">
-              <Edit className="h-4 w-4 mr-1" />
-              Edit
-            </Button>
           </div>
         </CardContent>
       </Card>
@@ -133,8 +275,27 @@ export function ProfileScreen() {
       {/* Personal Information */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-lg">Personal Information</CardTitle>
-          <CardDescription>Your contact details and church information</CardDescription>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="text-lg">Personal Information</CardTitle>
+              <CardDescription>Your contact details and church information</CardDescription>
+            </div>
+            {!isEditingAddress ? (
+              <Button variant="outline" size="sm" onClick={handleEditAddress}>
+                <Edit className="h-4 w-4 mr-1" />
+                Edit
+              </Button>
+            ) : (
+              <div className="flex items-center gap-2">
+                <Button variant="outline" size="sm" onClick={() => setIsEditingAddress(false)}>
+                  Cancel
+                </Button>
+                <Button size="sm" onClick={handleSaveAddress} className="bg-[#00369a] text-white">
+                  Save
+                </Button>
+              </div>
+            )}
+          </div>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex items-center space-x-3">
@@ -143,7 +304,7 @@ export function ProfileScreen() {
             </div>
             <div>
               <p className="text-sm text-muted-foreground">Email</p>
-              <p className="font-medium">{user.email}</p>
+              <p className="font-medium">{user.email || "Not set"}</p>
             </div>
           </div>
 
@@ -153,7 +314,7 @@ export function ProfileScreen() {
             </div>
             <div>
               <p className="text-sm text-muted-foreground">Phone</p>
-              <p className="font-medium">{user.phone}</p>
+              <p className="font-medium">{user.phone || "Not set"}</p>
             </div>
           </div>
 
@@ -163,7 +324,16 @@ export function ProfileScreen() {
             </div>
             <div>
               <p className="text-sm text-muted-foreground">Address</p>
-              <p className="font-medium">{user.address}</p>
+              {isEditingAddress ? (
+                <input
+                  value={addressDraft}
+                  onChange={(event) => setAddressDraft(event.target.value)}
+                  className="mt-1 w-full rounded-md border border-input bg-white px-3 py-2 text-sm text-black"
+                  placeholder="Enter your address"
+                />
+              ) : (
+                <p className="font-medium">{user.address || "Not set"}</p>
+              )}
             </div>
           </div>
 
@@ -173,7 +343,7 @@ export function ProfileScreen() {
             </div>
             <div>
               <p className="text-sm text-muted-foreground">Cell Group</p>
-              <p className="font-medium">{user.cellGroup}</p>
+              <p className="font-medium">{user.cellGroup ? user.cellGroup : "None"}</p>
             </div>
           </div>
         </CardContent>
