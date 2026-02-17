@@ -13,7 +13,7 @@ export async function sermonRoutes(fastify: FastifyInstance) {
   fastify.post(
     '/',
     {
-      onRequest: [authenticate, authorize(UserRole.ADMIN, UserRole.PASTOR)],
+      onRequest: [authenticate, authorize(UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.PASTOR)],
     },
     SermonController.createSermon
   );
@@ -21,7 +21,7 @@ export async function sermonRoutes(fastify: FastifyInstance) {
   fastify.put(
     '/:id',
     {
-      onRequest: [authenticate, authorize(UserRole.ADMIN, UserRole.PASTOR)],
+      onRequest: [authenticate, authorize(UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.PASTOR)],
     },
     SermonController.updateSermon
   );
@@ -29,7 +29,7 @@ export async function sermonRoutes(fastify: FastifyInstance) {
   fastify.delete(
     '/:id',
     {
-      onRequest: [authenticate, authorize(UserRole.ADMIN, UserRole.PASTOR)],
+      onRequest: [authenticate, authorize(UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.PASTOR)],
     },
     SermonController.deleteSermon
   );

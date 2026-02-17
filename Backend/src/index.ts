@@ -16,6 +16,7 @@ import { attendanceRoutes } from './routes/attendanceRoutes';
 import { titheRoutes } from './routes/titheRoutes';
 import { sermonRoutes } from './routes/sermonRoutes';
 import { cellGroupRoutes } from './routes/cellGroupRoutes';
+import { adminRoutes } from './routes/adminRoutes';
 
 const fastify = Fastify({
   logger: {
@@ -72,6 +73,7 @@ async function registerRoutes() {
   await fastify.register(titheRoutes, { prefix: '/api/tithes' });
   await fastify.register(sermonRoutes, { prefix: '/api/sermons' });
   await fastify.register(cellGroupRoutes, { prefix: '/api/cell-groups' });
+  await fastify.register(adminRoutes, { prefix: '/api/admin' });
 
   // WebSocket for real-time messaging
   fastify.register(async function (fastify) {

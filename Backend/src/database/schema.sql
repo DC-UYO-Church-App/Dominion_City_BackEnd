@@ -1,5 +1,5 @@
 -- Create ENUM types
-CREATE TYPE user_role AS ENUM ('admin', 'pastor', 'hod', 'cell_leader', 'worker', 'member');
+CREATE TYPE user_role AS ENUM ('super_admin', 'admin', 'pastor', 'hod', 'cell_leader', 'worker', 'member');
 CREATE TYPE attendance_status AS ENUM ('present', 'absent', 'excused');
 CREATE TYPE travel_status AS ENUM ('pending', 'approved', 'rejected');
 CREATE TYPE tithe_frequency AS ENUM ('daily', 'weekly', 'monthly');
@@ -96,7 +96,7 @@ CREATE TABLE sermons (
     video_url VARCHAR(500),
     thumbnail_url VARCHAR(500),
     category VARCHAR(100) NOT NULL,
-    duration INTEGER,
+    duration_minutes INTEGER,
     uploaded_by UUID NOT NULL REFERENCES users(id),
     views INTEGER DEFAULT 0,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,

@@ -140,6 +140,67 @@ class ApiClient {
     return this.request(`/attendance/user/${userId}/stats`);
   }
 
+  async getAdminDashboardStats() {
+    return this.request('/admin/stats');
+  }
+
+  async createSermon(data: {
+    title: string;
+    preacher: string;
+    duration?: string;
+    description?: string;
+    videoUrl?: string;
+    thumbnailFile?: File | null;
+    category?: string;
+  }) {
+    const formData = new FormData();
+    formData.append('title', data.title);
+    formData.append('preacher', data.preacher);
+    if (data.duration) formData.append('duration', data.duration);
+    if (data.description) formData.append('description', data.description);
+    if (data.videoUrl) formData.append('videoUrl', data.videoUrl);
+    if (data.category) formData.append('category', data.category);
+    if (data.thumbnailFile) formData.append('thumbnail', data.thumbnailFile);
+
+    const headers: HeadersInit = {};
+    if (this.token) {
+      headers['Authorization'] = `Bearer ${this.token}`;
+    }
+
+    const response = await fetch(`${API_BASE_URL}/sermons`, {
+      method: 'POST',
+      body: formData,
+      headers,
+    });
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({ error: 'Request failed' }));
+      throw new Error(error.error || `HTTP ${response.status}`);
+    }
+
+    return response.json();
+  }
+
+  async getSermons() {
+    return this.request('/sermons');
+  }
+
+  async updateSermon(
+    id: string,
+    data: { title?: string; preacher?: string; description?: string; videoUrl?: string; duration?: string }
+  ) {
+    return this.request(`/sermons/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async deleteSermon(id: string) {
+    return this.request(`/sermons/${id}`, {
+      method: 'DELETE',
+    });
+  }
+
   // Tithes
   async recordTithe(data: {
     userId: string;

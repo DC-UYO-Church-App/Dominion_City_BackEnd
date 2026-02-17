@@ -15,7 +15,7 @@ export class SermonService {
     uploadedBy: string;
   }): Promise<Sermon> {
     const result = await query(
-      `INSERT INTO sermons (title, preacher, sermon_date, description, audio_url, video_url, thumbnail_url, category, duration, uploaded_by)
+      `INSERT INTO sermons (title, preacher, sermon_date, description, audio_url, video_url, thumbnail_url, category, duration_minutes, uploaded_by)
        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
        RETURNING *`,
       [
@@ -169,6 +169,7 @@ export class SermonService {
   }
 
   private static camelToSnake(str: string): string {
+    if (str === 'duration') return 'duration_minutes';
     return str.replace(/[A-Z]/g, (letter) => `_${letter.toLowerCase()}`);
   }
 
@@ -183,7 +184,7 @@ export class SermonService {
       videoUrl: row.video_url,
       thumbnailUrl: row.thumbnail_url,
       category: row.category,
-      duration: row.duration,
+      duration: row.duration_minutes,
       uploadedBy: row.uploaded_by,
       views: row.views,
       createdAt: row.created_at,

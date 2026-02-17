@@ -1,10 +1,42 @@
 import { FastifyRequest, FastifyReply } from 'fastify';
 import { SermonService } from '../services/sermonService';
 import { AuthenticatedRequest } from '../middleware/auth';
+import fs from 'fs/promises';
+import path from 'path';
+import { config } from '../config';
 
 export class SermonController {
   static async createSermon(request: AuthenticatedRequest, reply: FastifyReply) {
     try {
+      const isMultipart = (request as any).isMultipart?.() ?? false;
+      let fields: Record<string, any> = {};
+      let thumbnailUrl: string | undefined;
+
+      if (isMultipart) {
+        const parts = (request as any).parts();
+        for await (const part of parts) {
+          if (part.type === 'file') {
+            if (!part.mimetype?.startsWith('image/')) {
+              continue;
+            }
+            if (part.fieldname !== 'thumbnail' && part.fieldname !== 'image') {
+              continue;
+            }
+            await fs.mkdir(config.upload.dir, { recursive: true });
+            const safeName = part.filename.replace(/[^a-zA-Z0-9._-]/g, '_');
+            const filename = `${request.user!.id}-${Date.now()}-${safeName}`;
+            const filePath = path.join(config.upload.dir, filename);
+            const buffer = await part.toBuffer();
+            await fs.writeFile(filePath, buffer);
+            thumbnailUrl = `/uploads/${filename}`;
+          } else {
+            fields[part.fieldname] = part.value;
+          }
+        }
+      } else {
+        fields = request.body as any;
+      }
+
       const {
         title,
         preacher,
@@ -12,20 +44,19 @@ export class SermonController {
         description,
         audioUrl,
         videoUrl,
-        thumbnailUrl,
         category,
         duration,
-      } = request.body as any;
+      } = fields;
 
       const sermon = await SermonService.createSermon({
         title,
         preacher,
-        sermonDate: new Date(sermonDate),
+        sermonDate: sermonDate ? new Date(sermonDate) : new Date(),
         description,
         audioUrl,
         videoUrl,
         thumbnailUrl,
-        category,
+        category: category || 'general',
         duration: duration ? parseInt(duration, 10) : undefined,
         uploadedBy: request.user!.id,
       });

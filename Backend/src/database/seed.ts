@@ -5,13 +5,13 @@ async function seed() {
   try {
     console.log('Seeding database...');
 
-    // Create admin user
-    const hashedPassword = await hashPassword('Admin@123');
+    // Create super admin user
+    const superAdminPassword = await hashPassword('88888888');
     await pool.query(
       `INSERT INTO users (email, password, first_name, last_name, phone_number, role)
        VALUES ($1, $2, $3, $4, $5, $6)
        ON CONFLICT (email) DO NOTHING`,
-      ['admin@dominioncityuyo.org', hashedPassword, 'Admin', 'User', '+2341234567890', 'admin']
+      ['icodes001@gmail.com', superAdminPassword, 'Super', 'Admin', '+2341234567890', 'super_admin']
     );
 
     // Create departments
