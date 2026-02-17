@@ -79,3 +79,17 @@
 .font-poppins {
   font-family: var(--font-poppins), sans-serif;
 }
+
+@layer utilities {
+  .typewriter-cursor {
+    display: inline-block;
+    margin-left: 0.1em;
+    animation: typewriter-blink 0.8s steps(1, end) infinite;
+  }
+}
+
+@keyframes typewriter-blink {
+  50% {
+    opacity: 0;
+  }
+}

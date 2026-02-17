@@ -24,8 +24,8 @@ export function LoginScreen() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
-      <Card className="w-full max-w-md">
+    <div className="min-h-screen flex items-center justify-center p-4">
+      <Card className="w-full max-w-md shadow-2xl backdrop-blur-sm bg-white/95">
         <CardHeader className="space-y-2 items-center text-center">
           <div className="w-20 h-20 rounded-full bg-[#00369a] flex items-center justify-center mb-2">
             <span className="text-2xl font-bold text-white">GH</span>

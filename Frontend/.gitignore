@@ -11,4 +11,8 @@ next-env.d.ts
 .Trashes
 ehthumbs.db
 Thumbs.db
-text.md
+text.
+.next
+.env.local
+../td.md
+../PROJECT_SUMMARY.md
