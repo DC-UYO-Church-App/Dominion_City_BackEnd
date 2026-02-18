@@ -9,10 +9,19 @@ import { Button } from "@/components/ui/button"
 import { Menu } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { apiClient } from "@/lib/api"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 
 export function DashboardLayout({ children }: { children: React.ReactNode }) {
   const [isDrawerOpen, setIsDrawerOpen] = useState(false)
   const [isCheckingAuth, setIsCheckingAuth] = useState(true)
+  const [profile, setProfile] = useState<any | null>(null)
+  const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false)
   const router = useRouter()
 
   useEffect(() => {
@@ -24,12 +33,27 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
 
     apiClient
       .getProfile()
-      .then(() => setIsCheckingAuth(false))
+      .then((response) => {
+        setProfile(response?.user || null)
+        setIsCheckingAuth(false)
+      })
       .catch(() => {
         apiClient.clearToken()
         router.replace("/login")
       })
   }, [router])
+
+  const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000/api"
+  const uploadsBaseUrl = apiBaseUrl.replace(/\/api$/, "")
+  const profileImage = (() => {
+    const value = profile?.profileImage
+    if (!value) return null
+    if (value.startsWith("http")) return value
+    if (value.startsWith("/uploads/")) return `${uploadsBaseUrl}${value}`
+    if (value.startsWith("uploads/")) return `${uploadsBaseUrl}/${value}`
+    if (!value.includes("/")) return `${uploadsBaseUrl}/uploads/${value}`
+    return value
+  })()
 
   if (isCheckingAuth) {
     return <div className="min-h-screen bg-white" />
@@ -47,7 +71,32 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
           <img src="/logo.png" alt="Dominion City" className="h-8 w-auto mr-2" />
           <h1 className="text-lg font-bold text-slate-900">Golden Heart</h1>
         </div>
-        <div className="w-8 h-8 rounded-full bg-slate-200"></div>
+        <DropdownMenu open={isProfileMenuOpen} onOpenChange={setIsProfileMenuOpen}>
+          <div
+            onMouseEnter={() => setIsProfileMenuOpen(true)}
+            onMouseLeave={() => setIsProfileMenuOpen(false)}
+          >
+            <DropdownMenuTrigger asChild>
+              <button className="rounded-full border border-slate-200 p-1 hover:bg-slate-50">
+                <Avatar className="h-8 w-8">
+                  <AvatarImage src={profileImage || ""} alt={profile?.firstName || "Profile"} />
+                  <AvatarFallback>{profile?.firstName?.slice(0, 1) || "U"}</AvatarFallback>
+                </Avatar>
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-40">
+              <DropdownMenuItem onClick={() => router.push("/dashboard/profile")}>Profile</DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => {
+                  apiClient.logout()
+                  router.replace("/login")
+                }}
+              >
+                Logout
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </div>
+        </DropdownMenu>
       </header>
 
       {/* Side Drawer (Mobile) */}

@@ -145,6 +145,193 @@ class ApiClient {
     return this.request('/admin/stats');
   }
 
+  async createBookshopManager(data: {
+    firstName: string;
+    lastName: string;
+    email: string;
+    phoneNumber: string;
+    address: string;
+    password: string;
+    confirmPassword: string;
+    profileImage?: File | null;
+  }) {
+    if (data.profileImage) {
+      const formData = new FormData();
+      formData.append('firstName', data.firstName);
+      formData.append('lastName', data.lastName);
+      formData.append('email', data.email);
+      formData.append('phoneNumber', data.phoneNumber);
+      formData.append('address', data.address);
+      formData.append('password', data.password);
+      formData.append('confirmPassword', data.confirmPassword);
+      formData.append('profileImage', data.profileImage);
+
+      const headers: HeadersInit = {};
+      if (this.token) {
+        headers['Authorization'] = `Bearer ${this.token}`;
+      }
+
+      const response = await fetch(`${API_BASE_URL}/admin/bookshop-managers`, {
+        method: 'POST',
+        body: formData,
+        headers,
+      });
+
+      if (!response.ok) {
+        const error = await response.json().catch(() => ({ error: 'Request failed' }));
+        throw new Error(error.error || `HTTP ${response.status}`);
+      }
+
+      return response.json();
+    }
+
+    return this.request('/admin/bookshop-managers', {
+      method: 'POST',
+      body: JSON.stringify({
+        firstName: data.firstName,
+        lastName: data.lastName,
+        email: data.email,
+        phoneNumber: data.phoneNumber,
+        address: data.address,
+        password: data.password,
+        confirmPassword: data.confirmPassword,
+      }),
+    });
+  }
+
+  async getBookshopManagers() {
+    return this.request('/admin/bookshop-managers');
+  }
+
+  async deleteBookshopManager(id: string) {
+    return this.request(`/admin/bookshop-managers/${id}`, {
+      method: 'DELETE',
+    });
+  }
+
+  async createBook(data: {
+    title: string;
+    author: string;
+    category: string;
+    price: number;
+    quantity: number;
+    summary?: string;
+    coverFile?: File | null;
+  }) {
+    if (data.coverFile) {
+      const formData = new FormData();
+      formData.append('title', data.title);
+      formData.append('author', data.author);
+      formData.append('category', data.category);
+      formData.append('price', data.price.toString());
+      formData.append('quantity', data.quantity.toString());
+      if (data.summary) formData.append('summary', data.summary);
+      formData.append('cover', data.coverFile);
+
+      const headers: HeadersInit = {};
+      if (this.token) {
+        headers['Authorization'] = `Bearer ${this.token}`;
+      }
+
+      const response = await fetch(`${API_BASE_URL}/books`, {
+        method: 'POST',
+        body: formData,
+        headers,
+      });
+
+      if (!response.ok) {
+        const error = await response.json().catch(() => ({ error: 'Request failed' }));
+        throw new Error(error.error || `HTTP ${response.status}`);
+      }
+
+      return response.json();
+    }
+
+    return this.request('/books', {
+      method: 'POST',
+      body: JSON.stringify({
+        title: data.title,
+        author: data.author,
+        category: data.category,
+        price: data.price,
+        quantity: data.quantity,
+        summary: data.summary,
+      }),
+    });
+  }
+
+  async getBooks() {
+    return this.request('/books');
+  }
+
+  async getBookStats() {
+    return this.request('/books/stats');
+  }
+
+  async getBookSales() {
+    return this.request('/books/sales');
+  }
+
+  async updateBook(
+    id: string,
+    data: {
+      title?: string;
+      author?: string;
+      category?: string;
+      price?: number;
+      quantity?: number;
+      summary?: string;
+      coverFile?: File | null;
+    }
+  ) {
+    if (data.coverFile) {
+      const formData = new FormData();
+      if (data.title) formData.append('title', data.title);
+      if (data.author) formData.append('author', data.author);
+      if (data.category) formData.append('category', data.category);
+      if (data.price !== undefined) formData.append('price', data.price.toString());
+      if (data.quantity !== undefined) formData.append('quantity', data.quantity.toString());
+      if (data.summary) formData.append('summary', data.summary);
+      formData.append('cover', data.coverFile);
+
+      const headers: HeadersInit = {};
+      if (this.token) {
+        headers['Authorization'] = `Bearer ${this.token}`;
+      }
+
+      const response = await fetch(`${API_BASE_URL}/books/${id}`, {
+        method: 'PUT',
+        body: formData,
+        headers,
+      });
+
+      if (!response.ok) {
+        const error = await response.json().catch(() => ({ error: 'Request failed' }));
+        throw new Error(error.error || `HTTP ${response.status}`);
+      }
+
+      return response.json();
+    }
+
+    return this.request(`/books/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify({
+        title: data.title,
+        author: data.author,
+        category: data.category,
+        price: data.price,
+        quantity: data.quantity,
+        summary: data.summary,
+      }),
+    });
+  }
+
+  async deleteBook(id: string) {
+    return this.request(`/books/${id}`, {
+      method: 'DELETE',
+    });
+  }
+
   async createSermon(data: {
     title: string;
     preacher: string;

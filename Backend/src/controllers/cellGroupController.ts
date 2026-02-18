@@ -8,6 +8,10 @@ export class CellGroupController {
       const { name, leaderId, meetingDay, meetingTime, address, latitude, longitude } =
         request.body as any;
 
+      if (!name || !meetingDay || !meetingTime || !address) {
+        return reply.status(400).send({ error: 'Name, meeting day, meeting time, and address are required' });
+      }
+
       const cellGroup = await CellGroupService.createCellGroup({
         name,
         leaderId,

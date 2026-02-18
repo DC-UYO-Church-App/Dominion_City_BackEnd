@@ -12,13 +12,14 @@ export class EventController {
       const isMultipart = (request as any).isMultipart?.() ?? false;
       let fields: Record<string, any> = {};
       let imageUrl: string | undefined;
+      const allowedImageTypes = ['image/jpeg', 'image/png', 'image/jpg'];
 
       if (isMultipart) {
         const parts = (request as any).parts();
         for await (const part of parts) {
           if (part.type === 'file') {
-            if (!part.mimetype?.startsWith('image/')) {
-              continue;
+            if (!part.mimetype || !allowedImageTypes.includes(part.mimetype)) {
+              return reply.status(400).send({ error: 'Only JPG or PNG images are allowed' });
             }
             if (part.fieldname !== 'cover' && part.fieldname !== 'image') {
               continue;
@@ -111,13 +112,14 @@ export class EventController {
       const isMultipart = (request as any).isMultipart?.() ?? false;
       let updates: Record<string, any> = {};
       let imageUrl: string | undefined;
+      const allowedImageTypes = ['image/jpeg', 'image/png', 'image/jpg'];
 
       if (isMultipart) {
         const parts = (request as any).parts();
         for await (const part of parts) {
           if (part.type === 'file') {
-            if (!part.mimetype?.startsWith('image/')) {
-              continue;
+            if (!part.mimetype || !allowedImageTypes.includes(part.mimetype)) {
+              return reply.status(400).send({ error: 'Only JPG or PNG images are allowed' });
             }
             if (part.fieldname !== 'cover' && part.fieldname !== 'image') {
               continue;

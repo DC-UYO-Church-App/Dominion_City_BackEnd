@@ -1,5 +1,5 @@
 -- Create ENUM types
-CREATE TYPE user_role AS ENUM ('super_admin', 'admin', 'pastor', 'hod', 'cell_leader', 'worker', 'member');
+CREATE TYPE user_role AS ENUM ('super_admin', 'admin', 'pastor', 'hod', 'cell_leader', 'worker', 'bookshop_manager', 'member');
 CREATE TYPE attendance_status AS ENUM ('present', 'absent', 'excused');
 CREATE TYPE travel_status AS ENUM ('pending', 'approved', 'rejected');
 CREATE TYPE tithe_frequency AS ENUM ('daily', 'weekly', 'monthly');
@@ -51,6 +51,24 @@ CREATE TABLE users (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
+
+-- Books table
+CREATE TABLE books (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    title VARCHAR(255) NOT NULL,
+    author VARCHAR(255) NOT NULL,
+    category VARCHAR(120) NOT NULL,
+    price DECIMAL(12, 2) NOT NULL DEFAULT 0,
+    quantity INT NOT NULL DEFAULT 0,
+    summary TEXT,
+    cover_image VARCHAR(500),
+    created_by UUID REFERENCES users(id) ON DELETE SET NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX idx_books_category ON books(category);
+CREATE INDEX idx_books_created_by ON books(created_by);
 
 -- Add foreign key constraints for department HOD and cell leader
 ALTER TABLE departments ADD CONSTRAINT fk_department_hod 

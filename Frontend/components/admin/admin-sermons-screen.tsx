@@ -27,6 +27,7 @@ export function AdminSermonsScreen() {
   const [youtubeLink, setYoutubeLink] = useState("")
   const [thumbnailFile, setThumbnailFile] = useState<File | null>(null)
   const [thumbnailPreview, setThumbnailPreview] = useState<string | null>(null)
+  const allowedImageTypes = ["image/jpeg", "image/png", "image/jpg"]
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [sermons, setSermons] = useState<any[]>([])
@@ -253,10 +254,21 @@ export function AdminSermonsScreen() {
               Upload Image
               <input
                 type="file"
-                accept="image/jpeg,image/png"
+                accept="image/jpeg,image/png,image/jpg"
                 className="hidden"
                 onChange={(event) => {
                   const file = event.target.files?.[0] || null
+                  if (file && !allowedImageTypes.includes(file.type)) {
+                    toast({
+                      title: "Invalid image",
+                      description: "Only JPG or PNG images are allowed.",
+                      variant: "destructive",
+                    })
+                    event.target.value = ""
+                    setThumbnailFile(null)
+                    setThumbnailPreview(null)
+                    return
+                  }
                   setThumbnailFile(file)
                   if (file) {
                     setThumbnailPreview(URL.createObjectURL(file))
@@ -276,6 +288,7 @@ export function AdminSermonsScreen() {
                 placeholder="Give your Life to Christ"
                 value={title}
                 onChange={(event) => setTitle(event.target.value)}
+                required
               />
             </div>
             <div>
@@ -285,6 +298,7 @@ export function AdminSermonsScreen() {
                 placeholder="Nonso Agu"
                 value={preacher}
                 onChange={(event) => setPreacher(event.target.value)}
+                required
               />
             </div>
             <div>

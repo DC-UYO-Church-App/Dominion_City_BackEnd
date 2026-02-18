@@ -11,13 +11,14 @@ export class SermonController {
       const isMultipart = (request as any).isMultipart?.() ?? false;
       let fields: Record<string, any> = {};
       let thumbnailUrl: string | undefined;
+      const allowedImageTypes = ['image/jpeg', 'image/png', 'image/jpg'];
 
       if (isMultipart) {
         const parts = (request as any).parts();
         for await (const part of parts) {
           if (part.type === 'file') {
-            if (!part.mimetype?.startsWith('image/')) {
-              continue;
+            if (!part.mimetype || !allowedImageTypes.includes(part.mimetype)) {
+              return reply.status(400).send({ error: 'Only JPG or PNG images are allowed' });
             }
             if (part.fieldname !== 'thumbnail' && part.fieldname !== 'image') {
               continue;
@@ -47,6 +48,10 @@ export class SermonController {
         category,
         duration,
       } = fields;
+
+      if (!title || !preacher) {
+        return reply.status(400).send({ error: 'Title and preacher are required' });
+      }
 
       const sermon = await SermonService.createSermon({
         title,

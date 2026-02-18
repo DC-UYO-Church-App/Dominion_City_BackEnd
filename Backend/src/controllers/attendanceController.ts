@@ -8,6 +8,10 @@ export class AttendanceController {
     try {
       const { userId, eventId, serviceDate, checkInTime, status, isFirstTimer, notes } = request.body as any;
 
+      if (!userId || !serviceDate) {
+        return reply.status(400).send({ error: 'User ID and service date are required' });
+      }
+
       const attendance = await AttendanceService.recordAttendance({
         userId,
         eventId,

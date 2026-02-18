@@ -11,4 +11,28 @@ export async function adminRoutes(fastify: FastifyInstance) {
     },
     AdminController.getDashboardStats
   );
+
+  fastify.post(
+    '/bookshop-managers',
+    {
+      onRequest: [authenticate, authorize(UserRole.SUPER_ADMIN)],
+    },
+    AdminController.createBookshopManager
+  );
+
+  fastify.get(
+    '/bookshop-managers',
+    {
+      onRequest: [authenticate, authorize(UserRole.SUPER_ADMIN)],
+    },
+    AdminController.listBookshopManagers
+  );
+
+  fastify.delete(
+    '/bookshop-managers/:id',
+    {
+      onRequest: [authenticate, authorize(UserRole.SUPER_ADMIN)],
+    },
+    AdminController.deleteBookshopManager
+  );
 }

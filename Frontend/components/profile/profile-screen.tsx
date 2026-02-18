@@ -96,10 +96,11 @@ export function ProfileScreen() {
     const file = event.target.files?.[0]
     if (!file) return
 
-    if (!file.type.startsWith("image/")) {
+    const allowedImageTypes = ["image/jpeg", "image/png", "image/jpg"]
+    if (!allowedImageTypes.includes(file.type)) {
       toast({
         title: "Invalid file",
-        description: "Please select an image file.",
+        description: "Only JPG or PNG images are allowed.",
         variant: "destructive",
       })
       return
@@ -244,7 +245,7 @@ export function ProfileScreen() {
               <input
                 ref={fileInputRef}
                 type="file"
-                accept="image/jpeg,image/png"
+                accept="image/jpeg,image/png,image/jpg"
                 className="hidden"
                 onChange={handleAvatarChange}
               />

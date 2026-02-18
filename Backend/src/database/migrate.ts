@@ -6,10 +6,49 @@ async function runMigrations() {
   try {
     console.log('Running database migrations...');
 
-    const schemaPath = path.resolve(__dirname, '../../src/database/schema.sql');
-    const schemaSql = fs.readFileSync(schemaPath, 'utf-8');
+    const hasUsersTable = await pool
+      .query(`SELECT to_regclass('public.users') as exists`)
+      .then((result) => Boolean(result.rows[0]?.exists))
+      .catch(() => false);
 
-    await pool.query(schemaSql);
+    if (!hasUsersTable) {
+      const schemaPath = path.resolve(__dirname, '../../src/database/schema.sql');
+      const schemaSql = fs.readFileSync(schemaPath, 'utf-8');
+      await pool.query(schemaSql);
+    }
+
+    await pool.query(
+      `CREATE TABLE IF NOT EXISTS schema_migrations (
+         id TEXT PRIMARY KEY,
+         applied_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+       )`
+    );
+
+    const migrationsDir = path.resolve(__dirname, '../../src/database/migrations');
+    if (fs.existsSync(migrationsDir)) {
+      const migrationFiles = fs
+        .readdirSync(migrationsDir)
+        .filter((file) => file.endsWith('.sql'))
+        .sort();
+
+      for (const file of migrationFiles) {
+        const result = await pool.query(`SELECT 1 FROM schema_migrations WHERE id = $1`, [file]);
+        if (result.rowCount) {
+          continue;
+        }
+
+        const sql = fs.readFileSync(path.join(migrationsDir, file), 'utf-8');
+        await pool.query('BEGIN');
+        try {
+          await pool.query(sql);
+          await pool.query(`INSERT INTO schema_migrations (id) VALUES ($1)`, [file]);
+          await pool.query('COMMIT');
+        } catch (error) {
+          await pool.query('ROLLBACK');
+          throw error;
+        }
+      }
+    }
 
     console.log('Migrations completed successfully!');
     process.exit(0);

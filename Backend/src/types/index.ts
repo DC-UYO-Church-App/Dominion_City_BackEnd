@@ -5,6 +5,7 @@ export enum UserRole {
   HOD = 'hod',
   CELL_LEADER = 'cell_leader',
   WORKER = 'worker',
+  BOOKSHOP_MANAGER = 'bookshop_manager',
   MEMBER = 'member',
 }
 
@@ -149,6 +150,20 @@ export interface Event {
   imageUrl?: string;
   address?: string;
   createdBy: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface Book {
+  id: string;
+  title: string;
+  author: string;
+  category: string;
+  price: number;
+  quantity: number;
+  summary?: string;
+  coverImage?: string;
+  createdBy?: string;
   createdAt: Date;
   updatedAt: Date;
 }

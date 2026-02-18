@@ -4,12 +4,17 @@ import { AuthenticatedRequest } from '../middleware/auth';
 import fs from 'fs/promises';
 import path from 'path';
 import { config } from '../config';
+import { EmailService } from '../config/email';
 
 export class AuthController {
   static async register(request: FastifyRequest, reply: FastifyReply) {
     try {
       const { email, password, firstName, lastName, phoneNumber, dateOfBirth, address } =
         request.body as any;
+
+      if (!email || !password || !firstName || !lastName || !phoneNumber) {
+        return reply.status(400).send({ error: 'All required fields must be provided' });
+      }
 
       const existingUser = await UserService.getUserByEmail(email);
       if (existingUser) {
@@ -25,6 +30,35 @@ export class AuthController {
         dateOfBirth: dateOfBirth ? new Date(dateOfBirth) : undefined,
         address,
       });
+
+      try {
+        const appBaseUrl = config.cors.origin || 'http://localhost:3001';
+        const logoUrl = `${appBaseUrl}/logo.png`;
+        await EmailService.send({
+          to: user.email,
+          subject: `Welcome to ${config.church.name}`,
+          html: `
+            <div style="font-family: Arial, sans-serif; background:#f7f9fc; padding: 24px;">
+              <div style="max-width: 600px; margin: 0 auto; background: #ffffff; border-radius: 16px; overflow: hidden; box-shadow: 0 10px 30px rgba(15, 23, 42, 0.08);">
+                <div style="padding: 24px; text-align: center; border-bottom: 1px solid #eef2f7;">
+                  <img src="${logoUrl}" alt="${config.church.name}" style="height: 56px;" />
+                  <h2 style="margin: 16px 0 4px; color: #0f172a;">Welcome, ${user.firstName}!</h2>
+                  <p style="margin: 0; color: #64748b;">We are glad you joined ${config.church.name}.</p>
+                </div>
+                <div style="padding: 24px; color: #334155; line-height: 1.6;">
+                  <p>Your account has been created successfully. You can now sign in to the Golden Heart app and explore sermons, events, and more.</p>
+                  <p>If you need help, reach us at <a href="mailto:${config.church.email}">${config.church.email}</a>.</p>
+                </div>
+                <div style="padding: 16px 24px; background: #f8fafc; color: #94a3b8; font-size: 12px; text-align: center;">
+                  This is an automated message from ${config.church.name}.
+                </div>
+              </div>
+            </div>
+          `,
+        });
+      } catch (error) {
+        console.error('Welcome email failed:', error);
+      }
 
       const token = request.server.jwt.sign({
         id: user.id,
@@ -115,7 +149,7 @@ export class AuthController {
         return reply.status(400).send({ error: 'No file uploaded' });
       }
 
-      const allowedTypes = ['image/jpeg', 'image/png'];
+      const allowedTypes = ['image/jpeg', 'image/png', 'image/jpg'];
       if (!allowedTypes.includes(file.mimetype)) {
         return reply.status(400).send({ error: 'Only JPG or PNG images are allowed' });
       }

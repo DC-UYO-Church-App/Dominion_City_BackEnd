@@ -8,6 +8,10 @@ export class TitheController {
     try {
       const { userId, amount, frequency, paymentDate, paymentMethod, notes } = request.body as any;
 
+      if (!userId || amount === undefined || !frequency || !paymentMethod) {
+        return reply.status(400).send({ error: 'User ID, amount, frequency, and payment method are required' });
+      }
+
       const tithe = await TitheService.recordTithe({
         userId,
         amount: parseFloat(amount),

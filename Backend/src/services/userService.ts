@@ -14,14 +14,15 @@ export class UserService {
     cellGroupId?: string;
     dateOfBirth?: Date;
     address?: string;
+    profileImage?: string;
   }): Promise<Omit<User, 'password'>> {
     const hashedPassword = await hashPassword(userData.password);
 
     const result = await query(
       `INSERT INTO users (
         email, password, first_name, last_name, phone_number, 
-        role, department_id, cell_group_id, date_of_birth, address
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+        role, department_id, cell_group_id, date_of_birth, address, profile_image
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
       RETURNING id, email, first_name, last_name, phone_number, role, 
                 department_id, cell_group_id, date_of_birth, address, 
                 is_first_timer, join_date, profile_image, is_active, 
@@ -37,6 +38,7 @@ export class UserService {
         userData.cellGroupId,
         userData.dateOfBirth,
         userData.address,
+        userData.profileImage,
       ]
     );
 

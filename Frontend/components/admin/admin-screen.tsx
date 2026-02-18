@@ -23,6 +23,10 @@ export function AdminScreen() {
   })
   const [chartData, setChartData] = useState<{ label: string; count: number }[]>([])
   const [isLoadingStats, setIsLoadingStats] = useState(true)
+  const [events, setEvents] = useState<any[]>([])
+  const [isLoadingEvents, setIsLoadingEvents] = useState(true)
+  const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000/api"
+  const uploadsBaseUrl = apiBaseUrl.replace(/\/api$/, "")
 
   useEffect(() => {
     apiClient
@@ -46,6 +50,14 @@ export function AdminScreen() {
         setChartData([])
       })
       .finally(() => setIsLoadingStats(false))
+  }, [])
+
+  useEffect(() => {
+    apiClient
+      .getEvents({ startDate: new Date().toISOString() })
+      .then((response) => setEvents(response.events || []))
+      .catch(() => setEvents([]))
+      .finally(() => setIsLoadingEvents(false))
   }, [])
 
   const statCards = useMemo(
@@ -77,6 +89,27 @@ export function AdminScreen() {
     ],
     [stats]
   )
+
+  const activeEvents = useMemo(() => {
+    const now = new Date()
+    return events
+      .map((event) => {
+        const eventDate = event.eventDate ? new Date(event.eventDate) : null
+        const cover = (() => {
+          const value = event.imageUrl
+          if (!value) return null
+          if (value.startsWith("http")) return value
+          if (value.startsWith("/uploads/")) return `${uploadsBaseUrl}${value}`
+          if (value.startsWith("uploads/")) return `${uploadsBaseUrl}/${value}`
+          if (!value.includes("/")) return `${uploadsBaseUrl}/uploads/${value}`
+          return value
+        })()
+        return { ...event, eventDate, cover, status: event.status || "scheduled" }
+      })
+      .filter((event) => event.eventDate && event.status !== "cancelled" && event.eventDate >= now)
+      .sort((a, b) => a.eventDate.getTime() - b.eventDate.getTime())
+      .slice(0, 5)
+  }, [events, uploadsBaseUrl])
 
   return (
     <AdminLayout>
@@ -162,25 +195,47 @@ export function AdminScreen() {
               <span>Date - Time</span>
               <span>Status</span>
             </div>
-            {[
-              { status: "Ongoing", color: "bg-emerald-500", label: "Ongoing" },
-              { status: "Upcoming", color: "bg-amber-400", label: "Upcoming" },
-              { status: "Upcoming", color: "bg-amber-400", label: "Upcoming" },
-              { status: "Ended", color: "bg-slate-400", label: "Ended" },
-              { status: "Ended", color: "bg-slate-400", label: "Ended" },
-            ].map((row, index) => (
-              <div key={index} className="grid grid-cols-[2fr_2fr_2fr_1fr] gap-4 border-t border-slate-200 px-4 py-4 text-sm text-slate-600">
-                <div className="flex items-center gap-3">
-                  <div className="h-10 w-10 rounded-lg bg-slate-200" />
-                  Worship and Praise Jolly
-                </div>
-                <span>6096 Marjolaine Landing</span>
-                <span>12.09.2019 - 12.53 PM</span>
-                <span className={`inline-flex w-fit rounded-full px-3 py-1 text-xs font-semibold text-white ${row.color}`}>
-                  {row.label}
-                </span>
-              </div>
-            ))}
+            {isLoadingEvents ? (
+              <div className="border-t border-slate-200 px-4 py-4 text-sm text-slate-400">Loading events...</div>
+            ) : activeEvents.length === 0 ? (
+              <div className="border-t border-slate-200 px-4 py-4 text-sm text-slate-400">No active events.</div>
+            ) : (
+              activeEvents.map((event) => {
+                const statusLabel = "Active"
+                const statusColor = "bg-emerald-500"
+                return (
+                  <div
+                    key={event.id}
+                    className="grid grid-cols-[2fr_2fr_2fr_1fr] gap-4 border-t border-slate-200 px-4 py-4 text-sm text-slate-600"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="h-10 w-10 overflow-hidden rounded-lg bg-slate-200">
+                        {event.cover ? (
+                          <img src={event.cover} alt={event.title} className="h-full w-full object-cover" />
+                        ) : null}
+                      </div>
+                      {event.title || "Untitled Event"}
+                    </div>
+                    <span>{event.address || "TBA"}</span>
+                    <span>
+                      {event.eventDate.toLocaleDateString("en-US", {
+                        month: "2-digit",
+                        day: "2-digit",
+                        year: "numeric",
+                      })}{" "}
+                      -{" "}
+                      {event.eventDate.toLocaleTimeString("en-US", {
+                        hour: "numeric",
+                        minute: "2-digit",
+                      })}
+                    </span>
+                    <span className={`inline-flex w-fit rounded-full px-3 py-1 text-xs font-semibold text-white ${statusColor}`}>
+                      {statusLabel}
+                    </span>
+                  </div>
+                )
+              })
+            )}
           </div>
         </Card>
       </div>

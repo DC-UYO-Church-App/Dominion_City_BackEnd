@@ -47,8 +47,8 @@ export function BottomNavigation() {
               key={item.name}
               href={item.href}
               className={cn(
-                "flex flex-1 flex-col items-center justify-center",
-                isActive ? "text-white" : "text-white/70",
+                "flex flex-1 flex-col items-center justify-center rounded-2xl transition-all duration-200 hover:bg-white/10 hover:-translate-y-0.5",
+                isActive ? "text-white" : "text-white/70 hover:text-white",
               )}
             >
               <item.icon className="h-5 w-5" />

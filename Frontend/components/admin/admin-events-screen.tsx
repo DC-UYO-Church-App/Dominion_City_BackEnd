@@ -33,6 +33,7 @@ export function AdminEventsScreen() {
   const [description, setDescription] = useState("")
   const [coverFile, setCoverFile] = useState<File | null>(null)
   const [coverPreview, setCoverPreview] = useState<string | null>(null)
+  const allowedImageTypes = ["image/jpeg", "image/png", "image/jpg"]
 
   const resetForm = () => {
     setTitle("")
@@ -375,10 +376,21 @@ export function AdminEventsScreen() {
                 Upload Cover Photo
                 <input
                   type="file"
-                  accept="image/jpeg,image/png"
+                  accept="image/jpeg,image/png,image/jpg"
                   className="hidden"
                   onChange={(event) => {
                     const file = event.target.files?.[0] || null
+                    if (file && !allowedImageTypes.includes(file.type)) {
+                      toast({
+                        title: "Invalid image",
+                        description: "Only JPG or PNG images are allowed.",
+                        variant: "destructive",
+                      })
+                      event.target.value = ""
+                      setCoverFile(null)
+                      setCoverPreview(null)
+                      return
+                    }
                     setCoverFile(file)
                     if (file) {
                       setCoverPreview(URL.createObjectURL(file))
@@ -398,6 +410,7 @@ export function AdminEventsScreen() {
                   placeholder="Enter event name"
                   value={title}
                   onChange={(event) => setTitle(event.target.value)}
+                  required
                 />
               </div>
               <div>
@@ -407,6 +420,7 @@ export function AdminEventsScreen() {
                   className="mt-2 w-full rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-sm"
                   value={time}
                   onChange={(event) => setTime(event.target.value)}
+                  required
                 />
               </div>
               <div>
@@ -416,6 +430,7 @@ export function AdminEventsScreen() {
                   className="mt-2 w-full rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-sm"
                   value={date}
                   onChange={(event) => setDate(event.target.value)}
+                  required
                 />
               </div>
               <div>
