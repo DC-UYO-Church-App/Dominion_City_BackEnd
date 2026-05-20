@@ -1,28 +1,22 @@
 "use client"
 
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Separator } from "@/components/ui/separator"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Badge } from "@/components/ui/badge"
-import {
-  Mail,
-  Phone,
-  MapPin,
-  Users,
-  Settings,
-  Bell,
-  CreditCard,
-  Calendar,
-  Gift,
-  HelpCircle,
-  LogOut,
-  Edit,
-  ChevronRight,
-} from "lucide-react"
+import { useEffect, useMemo, useRef, useState } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { useEffect, useMemo, useRef, useState } from "react"
+import {
+  Edit,
+  Camera,
+  CheckCircle,
+  Lock,
+  Medal,
+  GraduationCap,
+  Mail,
+  Calendar,
+  Users,
+  Music,
+  ChevronRight,
+  LogOut,
+} from "lucide-react"
 import { apiClient } from "@/lib/api"
 import { useToast } from "@/hooks/use-toast"
 
@@ -32,31 +26,30 @@ export function ProfileScreen() {
   const { toast } = useToast()
   const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000/api"
   const uploadsBaseUrl = apiBaseUrl.replace(/\/api$/, "")
-  const [isEditingAddress, setIsEditingAddress] = useState(false)
-  const [addressDraft, setAddressDraft] = useState("")
 
-  const [user, setUser] = useState<{
-    firstName: string
-    lastName: string
-    email: string
-    phone: string
-    address?: string
-    cellGroup?: string
-    role: string
-    memberSince: string
-    teams: string[]
-    avatar?: string
-  }>({
+  const [isEditing, setIsEditing] = useState(false)
+  const [isSaving, setIsSaving] = useState(false)
+
+  const [user, setUser] = useState({
     firstName: "Member",
     lastName: "",
     email: "",
     phone: "",
     address: "",
-    cellGroup: undefined,
-    role: "Member",
-    memberSince: "",
-    teams: [],
-    avatar: "/placeholder.svg?height=80&width=80",
+    dateOfBirth: "",
+    cellGroup: "",
+    role: "member",
+    joinDate: "",
+    department: "",
+    avatar: "",
+  })
+
+  const [draft, setDraft] = useState({
+    firstName: "",
+    lastName: "",
+    phone: "",
+    address: "",
+    dateOfBirth: "",
   })
 
   useEffect(() => {
@@ -65,65 +58,64 @@ export function ProfileScreen() {
       .then((response) => {
         const profile = response?.user
         if (!profile) return
-        setUser({
+        const resolvedAvatar = (() => {
+          const v = profile.profileImage
+          if (!v) return ""
+          if (v.startsWith("http")) return v
+          if (v.startsWith("/uploads/")) return `${uploadsBaseUrl}${v}`
+          if (v.startsWith("uploads/")) return `${uploadsBaseUrl}/${v}`
+          return `${uploadsBaseUrl}/uploads/${v}`
+        })()
+        const data = {
           firstName: profile.firstName || "Member",
           lastName: profile.lastName || "",
           email: profile.email || "",
           phone: profile.phoneNumber || "",
           address: profile.address || "",
-          cellGroup: profile.cellGroupId || undefined,
-          role: profile.role ? `${profile.role}` : "Member",
-          memberSince: profile.joinDate ? new Date(profile.joinDate).getFullYear().toString() : "",
-          teams: [],
-          avatar: profile.profileImage
-            ? profile.profileImage.startsWith("/uploads/")
-              ? `${uploadsBaseUrl}${profile.profileImage}`
-              : profile.profileImage
-            : "/placeholder.svg?height=80&width=80",
+          dateOfBirth: profile.dateOfBirth ? profile.dateOfBirth.split("T")[0] : "",
+          cellGroup: profile.cellGroupId || "",
+          role: profile.role || "member",
+          joinDate: profile.joinDate
+            ? new Date(profile.joinDate).toLocaleDateString("en-US", {
+                month: "long",
+                day: "numeric",
+                year: "numeric",
+              })
+            : "",
+          department: profile.departmentId || "",
+          avatar: resolvedAvatar,
+        }
+        setUser(data)
+        setDraft({
+          firstName: data.firstName,
+          lastName: data.lastName,
+          phone: data.phone,
+          address: data.address,
+          dateOfBirth: data.dateOfBirth,
         })
-        setAddressDraft(profile.address || "")
       })
-      .catch(() => {
-        // keep defaults on error
-      })
-  }, [])
+      .catch(() => {})
+  }, [uploadsBaseUrl])
 
-  const handleAvatarClick = () => {
-    fileInputRef.current?.click()
-  }
+  const handleAvatarClick = () => fileInputRef.current?.click()
 
-  const handleAvatarChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0]
+  const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
     if (!file) return
-
-    const allowedImageTypes = ["image/jpeg", "image/png", "image/jpg"]
-    if (!allowedImageTypes.includes(file.type)) {
-      toast({
-        title: "Invalid file",
-        description: "Only JPG or PNG images are allowed.",
-        variant: "destructive",
-      })
+    if (!["image/jpeg", "image/png", "image/jpg"].includes(file.type)) {
+      toast({ title: "Invalid file", description: "Only JPG or PNG images are allowed.", variant: "destructive" })
       return
     }
-
     try {
-      const response = await apiClient.uploadProfileImage(file)
-      const rawImageUrl = response?.imageUrl || response?.user?.profileImage
-      const imageUrl = rawImageUrl?.startsWith("/uploads/")
-        ? `${uploadsBaseUrl}${rawImageUrl}`
-        : rawImageUrl
-      if (imageUrl) {
-        setUser((prev) => ({ ...prev, avatar: imageUrl }))
-      }
-      toast({
-        title: "Profile updated",
-        description: "Your profile picture has been updated.",
-      })
+      const res = await apiClient.uploadProfileImage(file)
+      const raw = res?.imageUrl || res?.user?.profileImage
+      const url = raw?.startsWith("/uploads/") ? `${uploadsBaseUrl}${raw}` : raw
+      if (url) setUser((prev) => ({ ...prev, avatar: url }))
+      toast({ title: "Profile updated", description: "Your profile picture has been updated." })
     } catch (error) {
-      const message = error instanceof Error ? error.message : "Upload failed"
       toast({
         title: "Upload failed",
-        description: message,
+        description: error instanceof Error ? error.message : "Upload failed",
         variant: "destructive",
       })
     } finally {
@@ -131,340 +123,309 @@ export function ProfileScreen() {
     }
   }
 
-  const handleEditAddress = () => {
-    setAddressDraft(user.address || "")
-    setIsEditingAddress(true)
-  }
-
-  const handleSaveAddress = async () => {
+  const handleSave = async () => {
+    setIsSaving(true)
     try {
-      const response = await apiClient.updateProfile({ address: addressDraft })
-      const updatedAddress = response?.user?.address ?? addressDraft
-      setUser((prev) => ({ ...prev, address: updatedAddress }))
-      setIsEditingAddress(false)
-      toast({
-        title: "Address updated",
-        description: "Your address has been saved.",
+      const res = await apiClient.updateProfile({
+        firstName: draft.firstName,
+        lastName: draft.lastName,
+        phoneNumber: draft.phone,
+        address: draft.address,
+        dateOfBirth: draft.dateOfBirth || undefined,
       })
+      const u = res?.user
+      setUser((prev) => ({
+        ...prev,
+        firstName: u?.firstName || draft.firstName,
+        lastName: u?.lastName || draft.lastName,
+        phone: u?.phoneNumber || draft.phone,
+        address: u?.address || draft.address,
+        dateOfBirth: u?.dateOfBirth ? u.dateOfBirth.split("T")[0] : draft.dateOfBirth,
+      }))
+      setIsEditing(false)
+      toast({ title: "Profile saved", description: "Your changes have been saved." })
     } catch (error) {
-      const message = error instanceof Error ? error.message : "Update failed"
       toast({
-        title: "Update failed",
-        description: message,
+        title: "Save failed",
+        description: error instanceof Error ? error.message : "Save failed",
         variant: "destructive",
       })
+    } finally {
+      setIsSaving(false)
     }
   }
 
-  const fullName = useMemo(
-    () => `${user.firstName} ${user.lastName}`.trim(),
-    [user.firstName, user.lastName]
-  )
+  const fullName = useMemo(() => `${user.firstName} ${user.lastName}`.trim(), [user.firstName, user.lastName])
 
-  const handleLogout = () => {
-    // In a real app, we would handle logout logic
-    router.push("/")
-  }
+  const initials = useMemo(() => {
+    const parts = fullName.split(" ").filter(Boolean)
+    return parts.length >= 2 ? `${parts[0][0]}${parts[1][0]}` : parts[0]?.[0] || "U"
+  }, [fullName])
 
-  const accountItems = [
-    {
-      icon: Settings,
-      label: "Settings",
-      href: "/dashboard/settings",
-      description: "App preferences and privacy",
-    },
-    {
-      icon: Bell,
-      label: "Notifications",
-      href: "/dashboard/notifications",
-      description: "Manage your notifications",
-      badge: "3",
-    },
-    {
-      icon: CreditCard,
-      label: "Tithing & Donations",
-      href: "/dashboard/tithing",
-      description: "View giving history",
-    },
+  const roleLabel = user.role.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())
+
+  const programs = [
+    { name: "DCA Basic", completed: false, date: "" },
+    { name: "DCA Advance", completed: false, date: "" },
+    { name: "Encounter", completed: false, date: "" },
+    { name: "DLI Basic", completed: false, date: "" },
+    { name: "DLI Advance", completed: false, date: "" },
   ]
 
-  const activityItems = [
-    {
-      icon: Calendar,
-      label: "Events & Programs",
-      href: "/dashboard/events",
-      description: "Upcoming church events",
-    },
-    {
-      icon: Gift,
-      label: "Birthdays",
-      href: "/dashboard/birthdays",
-      description: "Church member birthdays",
-      badge: "2 Today",
-    },
-    {
-      icon: Users,
-      label: "My Cell Group",
-      href: "/dashboard/cell-groups",
-      description: user.cellGroup ? user.cellGroup : "None",
-    },
-  ]
-
-  const supportItems = [
-    {
-      icon: HelpCircle,
-      label: "Help & Support",
-      href: "/dashboard/help",
-      description: "Get help and contact support",
-    },
-  ]
+  const inputClass = (editing: boolean) =>
+    `w-full border rounded-lg px-4 py-2.5 text-sm transition-all ${
+      editing
+        ? "bg-white border-gray-300 text-gray-900 focus:border-[#415e94] focus:ring-2 focus:ring-[#415e94]/10"
+        : "bg-gray-50 border-gray-200 text-gray-500 cursor-default"
+    }`
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold">Profile</h1>
-        <p className="text-muted-foreground">Manage your account and preferences</p>
-      </div>
+    <div className="space-y-6 pb-28">
+      {/* Breadcrumbs */}
+      <nav className="flex items-center gap-2 text-[11px] text-gray-400 font-semibold uppercase tracking-widest">
+        <Link href="/dashboard" className="hover:text-[#1A3A6E] transition-colors">
+          Dashboard
+        </Link>
+        <ChevronRight className="h-3 w-3" />
+        <span className="text-[#1A3A6E]">Profile Settings</span>
+      </nav>
 
-      {/* User Info Card */}
-      <Card>
-        <CardContent className="pt-6">
-          <div className="flex items-center space-x-4">
-            <div className="relative">
-              <Avatar className="h-20 w-20">
-                <AvatarImage src={user.avatar || "/placeholder.svg"} alt={fullName} />
-                <AvatarFallback className="text-lg">{fullName.substring(0, 2)}</AvatarFallback>
-              </Avatar>
-              <button
-                type="button"
-                onClick={handleAvatarClick}
-                className="absolute -bottom-1 -right-1 rounded-full bg-[#00369a] p-2 text-white shadow-md"
-              >
-                <Edit className="h-3.5 w-3.5" />
-              </button>
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/jpeg,image/png,image/jpg"
-                className="hidden"
-                onChange={handleAvatarChange}
-              />
+      {/* Profile Header */}
+      <section className="bg-white rounded-xl shadow-[0_1px_4px_rgba(0,0,0,0.08)] border border-gray-100 overflow-hidden">
+        <div className="h-28 bg-[#0a1f44] w-full" />
+        <div className="relative flex flex-col md:flex-row items-end gap-4 -mt-14 px-6 pb-6">
+          {/* Avatar */}
+          <div className="relative flex-shrink-0 group">
+            <div className="w-28 h-28 rounded-full border-4 border-white ring-4 ring-[#0a1f44]/10 overflow-hidden bg-gray-100 shadow-md">
+              {user.avatar ? (
+                <img src={user.avatar} alt={fullName} className="w-full h-full object-cover" />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center bg-[#1A3A6E] text-white text-2xl font-bold">
+                  {initials}
+                </div>
+              )}
             </div>
-            <div className="flex-1">
-              <h2 className="text-xl font-bold">{fullName}</h2>
-              <p className="text-muted-foreground">
-                {user.role}
-                {user.memberSince ? ` since ${user.memberSince}` : ""}
-              </p>
-              <div className="flex flex-wrap items-center gap-2 mt-2">
-                {user.teams.length > 0 ? (
-                  user.teams.map((team) => (
-                    <Badge key={team} variant="secondary">
-                      {team}
-                    </Badge>
-                  ))
-                ) : (
-                  <Badge variant="secondary">No team yet</Badge>
-                )}
-                <Badge variant="outline">{user.cellGroup ? user.cellGroup : "No cell yet"}</Badge>
-              </div>
-            </div>
+            <button
+              onClick={handleAvatarClick}
+              className="absolute bottom-1 right-1 bg-[#415e94] text-white p-1.5 rounded-full shadow-lg hover:scale-110 transition-transform"
+            >
+              <Camera className="h-4 w-4" />
+            </button>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/jpeg,image/png,image/jpg"
+              className="hidden"
+              onChange={handleAvatarChange}
+            />
           </div>
-        </CardContent>
-      </Card>
 
-      {/* Personal Information */}
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <div>
-              <CardTitle className="text-lg">Personal Information</CardTitle>
-              <CardDescription>Your contact details and church information</CardDescription>
+          {/* Name & meta */}
+          <div className="flex-1 pb-1">
+            <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+              <h2 className="text-2xl font-bold text-[#00081e]">{fullName}</h2>
+              <span className="inline-flex items-center px-3 py-0.5 bg-[#a5c1fe]/30 text-[#28467b] text-xs rounded-full font-bold tracking-wide w-fit">
+                {roleLabel}
+              </span>
             </div>
-            {!isEditingAddress ? (
-              <Button variant="outline" size="sm" onClick={handleEditAddress}>
-                <Edit className="h-4 w-4 mr-1" />
-                Edit
-              </Button>
+            <p className="text-sm text-gray-500 mt-1">
+              {user.joinDate ? `Active since ${user.joinDate}` : "Dominion City Uyo"} &bull; Uyo Central Branch
+            </p>
+          </div>
+
+          {/* Edit / Save buttons */}
+          <div className="pb-1 w-full md:w-auto">
+            {!isEditing ? (
+              <button
+                onClick={() => {
+                  setDraft({
+                    firstName: user.firstName,
+                    lastName: user.lastName,
+                    phone: user.phone,
+                    address: user.address,
+                    dateOfBirth: user.dateOfBirth,
+                  })
+                  setIsEditing(true)
+                }}
+                className="w-full md:w-auto flex items-center justify-center gap-2 px-5 py-2.5 bg-[#0a1f44] text-white rounded-lg font-semibold text-sm hover:opacity-90 transition-all"
+              >
+                <Edit className="h-4 w-4" />
+                Edit Profile
+              </button>
             ) : (
-              <div className="flex items-center gap-2">
-                <Button variant="outline" size="sm" onClick={() => setIsEditingAddress(false)}>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setIsEditing(false)}
+                  className="flex-1 md:flex-none px-4 py-2.5 border border-gray-200 text-gray-600 rounded-lg font-semibold text-sm hover:bg-gray-50 transition-all"
+                >
                   Cancel
-                </Button>
-                <Button size="sm" onClick={handleSaveAddress} className="bg-[#00369a] text-white">
-                  Save
-                </Button>
+                </button>
+                <button
+                  onClick={handleSave}
+                  disabled={isSaving}
+                  className="flex-1 md:flex-none px-4 py-2.5 bg-[#0a1f44] text-white rounded-lg font-semibold text-sm hover:opacity-90 transition-all disabled:opacity-60"
+                >
+                  {isSaving ? "Saving..." : "Save Changes"}
+                </button>
               </div>
             )}
           </div>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex items-center space-x-3">
-            <div className="w-10 h-10 rounded-full bg-church-soft-blue flex items-center justify-center">
-              <Mail className="h-5 w-5 text-church-blue" />
+        </div>
+      </section>
+
+      {/* Two-column grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        {/* Left: Personal Information */}
+        <div className="lg:col-span-7">
+          <div className="bg-white rounded-xl shadow-[0_1px_4px_rgba(0,0,0,0.08)] border border-gray-100 p-6 h-full">
+            <h3 className="text-lg font-bold text-[#0a1f44] mb-5 flex items-center gap-2">
+              <div className="w-7 h-7 rounded-full bg-[#a5c1fe]/30 flex items-center justify-center">
+                <Edit className="h-3.5 w-3.5 text-[#415e94]" />
+              </div>
+              Personal Information
+            </h3>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+              {[
+                {
+                  label: "First Name",
+                  type: "text",
+                  value: isEditing ? draft.firstName : user.firstName,
+                  onChange: (v: string) => setDraft((d) => ({ ...d, firstName: v })),
+                },
+                {
+                  label: "Last Name",
+                  type: "text",
+                  value: isEditing ? draft.lastName : user.lastName,
+                  onChange: (v: string) => setDraft((d) => ({ ...d, lastName: v })),
+                },
+                {
+                  label: "Phone Number",
+                  type: "tel",
+                  value: isEditing ? draft.phone : user.phone,
+                  onChange: (v: string) => setDraft((d) => ({ ...d, phone: v })),
+                },
+                {
+                  label: "Home Address",
+                  type: "text",
+                  value: isEditing ? draft.address : user.address,
+                  onChange: (v: string) => setDraft((d) => ({ ...d, address: v })),
+                },
+                {
+                  label: "Date of Birth",
+                  type: "date",
+                  value: isEditing ? draft.dateOfBirth : user.dateOfBirth,
+                  onChange: (v: string) => setDraft((d) => ({ ...d, dateOfBirth: v })),
+                },
+              ].map((field) => (
+                <div key={field.label} className="space-y-1.5">
+                  <label className="block text-[10px] font-bold text-[#1A3A6E] uppercase tracking-wider">
+                    {field.label}
+                  </label>
+                  <input
+                    type={field.type}
+                    value={field.value || ""}
+                    onChange={(e) => field.onChange(e.target.value)}
+                    disabled={!isEditing}
+                    className={inputClass(isEditing)}
+                  />
+                </div>
+              ))}
             </div>
-            <div>
-              <p className="text-sm text-muted-foreground">Email</p>
-              <p className="font-medium">{user.email || "Not set"}</p>
+
+            {/* Account & Ministry Details */}
+            <div className="mt-6 pt-5 border-t border-gray-100">
+              <h4 className="font-semibold text-[#0a1f44] mb-4 text-sm">Account &amp; Ministry Details</h4>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-y-5 gap-x-6">
+                {[
+                  { Icon: Mail, label: "Email Address", value: user.email || "—" },
+                  { Icon: Calendar, label: "Join Date", value: user.joinDate || "—" },
+                  { Icon: Music, label: "Ministry Department", value: user.department || "Not assigned" },
+                  { Icon: Users, label: "Cell Group", value: user.cellGroup || "Not assigned" },
+                ].map(({ Icon, label, value }) => (
+                  <div key={label}>
+                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">{label}</p>
+                    <div className="flex items-center gap-1.5">
+                      <Icon className="h-4 w-4 text-[#415e94] flex-shrink-0" />
+                      <p className="text-sm text-[#00081e] font-medium">{value}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
+        </div>
 
-          <div className="flex items-center space-x-3">
-            <div className="w-10 h-10 rounded-full bg-church-soft-blue flex items-center justify-center">
-              <Phone className="h-5 w-5 text-church-blue" />
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground">Phone</p>
-              <p className="font-medium">{user.phone || "Not set"}</p>
-            </div>
-          </div>
-
-          <div className="flex items-center space-x-3">
-            <div className="w-10 h-10 rounded-full bg-church-soft-blue flex items-center justify-center">
-              <MapPin className="h-5 w-5 text-church-blue" />
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground">Address</p>
-              {isEditingAddress ? (
-                <input
-                  value={addressDraft}
-                  onChange={(event) => setAddressDraft(event.target.value)}
-                  className="mt-1 w-full rounded-md border border-input bg-white px-3 py-2 text-sm text-black"
-                  placeholder="Enter your address"
-                />
-              ) : (
-                <p className="font-medium">{user.address || "Not set"}</p>
+        {/* Right: Academy Progress */}
+        <div className="lg:col-span-5">
+          <div className="bg-white rounded-xl shadow-[0_1px_4px_rgba(0,0,0,0.08)] border border-gray-100 p-6 h-full">
+            <h3 className="text-lg font-bold text-[#0a1f44] mb-5 flex items-center gap-2">
+              <div className="w-7 h-7 rounded-full bg-[#a5c1fe]/30 flex items-center justify-center">
+                <GraduationCap className="h-3.5 w-3.5 text-[#415e94]" />
+              </div>
+              Academy Progress
+            </h3>
+            <div className="space-y-3">
+              {programs.map((program) =>
+                program.completed ? (
+                  <div
+                    key={program.name}
+                    className="flex items-center gap-3 p-3 bg-[#a5c1fe]/10 border border-[#a5c1fe]/30 rounded-xl"
+                  >
+                    <div className="w-12 h-12 bg-[#a5c1fe] flex items-center justify-center rounded-full shadow-sm flex-shrink-0">
+                      <Medal className="h-6 w-6 text-[#28467b]" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-semibold text-[#00081e] text-sm">{program.name}</p>
+                      <p className="text-xs text-[#28467b]">
+                        Completed{program.date ? ` • ${program.date}` : ""}
+                      </p>
+                    </div>
+                    <CheckCircle className="h-5 w-5 text-[#415e94] flex-shrink-0" />
+                  </div>
+                ) : (
+                  <div
+                    key={program.name}
+                    className="flex items-center gap-3 p-3 bg-gray-50 border border-gray-100 rounded-xl opacity-60 grayscale"
+                  >
+                    <div className="w-12 h-12 bg-gray-200 flex items-center justify-center rounded-full flex-shrink-0">
+                      <GraduationCap className="h-6 w-6 text-gray-400" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-semibold text-gray-500 text-sm">{program.name}</p>
+                      <p className="text-xs text-gray-400">Not started</p>
+                    </div>
+                    <Lock className="h-4 w-4 text-gray-400 flex-shrink-0" />
+                  </div>
+                ),
               )}
             </div>
           </div>
-
-          <div className="flex items-center space-x-3">
-            <div className="w-10 h-10 rounded-full bg-church-soft-blue flex items-center justify-center">
-              <Users className="h-5 w-5 text-church-blue" />
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground">Cell Group</p>
-              <p className="font-medium">{user.cellGroup ? user.cellGroup : "None"}</p>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Account Section */}
-      <div>
-        <h2 className="text-lg font-bold mb-3">Account</h2>
-        <Card>
-          <CardContent className="p-0">
-            {accountItems.map((item, index) => (
-              <div key={item.label}>
-                <Link href={item.href} className="flex items-center justify-between p-4 hover:bg-muted/50">
-                  <div className="flex items-center space-x-3">
-                    <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center">
-                      <item.icon className="h-5 w-5" />
-                    </div>
-                    <div>
-                      <p className="font-medium">{item.label}</p>
-                      <p className="text-sm text-muted-foreground">{item.description}</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    {item.badge && (
-                      <Badge variant="secondary" className="text-xs">
-                        {item.badge}
-                      </Badge>
-                    )}
-                    <ChevronRight className="h-4 w-4 text-muted-foreground" />
-                  </div>
-                </Link>
-                {index < accountItems.length - 1 && <Separator />}
-              </div>
-            ))}
-          </CardContent>
-        </Card>
+        </div>
       </div>
 
-      {/* Activities Section */}
-      <div>
-        <h2 className="text-lg font-bold mb-3">Activities</h2>
-        <Card>
-          <CardContent className="p-0">
-            {activityItems.map((item, index) => (
-              <div key={item.label}>
-                <Link href={item.href} className="flex items-center justify-between p-4 hover:bg-muted/50">
-                  <div className="flex items-center space-x-3">
-                    <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center">
-                      <item.icon className="h-5 w-5" />
-                    </div>
-                    <div>
-                      <p className="font-medium">{item.label}</p>
-                      <p className="text-sm text-muted-foreground">{item.description}</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    {item.badge && (
-                      <Badge variant="secondary" className="text-xs">
-                        {item.badge}
-                      </Badge>
-                    )}
-                    <ChevronRight className="h-4 w-4 text-muted-foreground" />
-                  </div>
-                </Link>
-                {index < activityItems.length - 1 && <Separator />}
-              </div>
-            ))}
-          </CardContent>
-        </Card>
-      </div>
 
-      {/* Support Section */}
-      <div>
-        <h2 className="text-lg font-bold mb-3">Support</h2>
-        <Card>
-          <CardContent className="p-0">
-            {supportItems.map((item, index) => (
-              <div key={item.label}>
-                <Link href={item.href} className="flex items-center justify-between p-4 hover:bg-muted/50">
-                  <div className="flex items-center space-x-3">
-                    <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center">
-                      <item.icon className="h-5 w-5" />
-                    </div>
-                    <div>
-                      <p className="font-medium">{item.label}</p>
-                      <p className="text-sm text-muted-foreground">{item.description}</p>
-                    </div>
-                  </div>
-                  <ChevronRight className="h-4 w-4 text-muted-foreground" />
-                </Link>
-                {index < supportItems.length - 1 && <Separator />}
-              </div>
-            ))}
+      {/* Logout */}
+      <button
+        onClick={() => {
+          apiClient.logout()
+          router.replace("/login")
+        }}
+        className="w-full flex items-center gap-3 p-4 bg-white rounded-xl border border-gray-100 shadow-[0_1px_4px_rgba(0,0,0,0.08)] hover:bg-red-50 transition-colors group"
+      >
+        <div className="w-9 h-9 rounded-full bg-red-100 flex items-center justify-center">
+          <LogOut className="h-4 w-4 text-red-600" />
+        </div>
+        <div className="text-left">
+          <p className="font-semibold text-red-600 text-sm">Logout</p>
+          <p className="text-xs text-gray-400">Sign out of your account</p>
+        </div>
+      </button>
 
-            <Separator />
-
-            {/* Logout Button */}
-            <button
-              onClick={handleLogout}
-              className="flex items-center justify-between p-4 hover:bg-red-50 w-full text-left"
-            >
-              <div className="flex items-center space-x-3">
-                <div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center">
-                  <LogOut className="h-5 w-5 text-red-600" />
-                </div>
-                <div>
-                  <p className="font-medium text-red-600">Logout</p>
-                  <p className="text-sm text-muted-foreground">Sign out of your account</p>
-                </div>
-              </div>
-            </button>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* App Info */}
-      <div className="text-center text-sm text-muted-foreground py-4">
-        <p>Dominion City Church - Golden Heart</p>
-        <p>Version 1.0.0</p>
-      </div>
+      {/* Footer */}
+      <p className="text-center text-xs text-gray-400 pb-4">
+        © 2024 Dominion City Uyo. All spiritual and administrative data secured.
+      </p>
     </div>
   )
 }

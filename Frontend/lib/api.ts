@@ -567,6 +567,34 @@ class ApiClient {
     return this.request(`/cell-groups/${id}/members`);
   }
 
+  // Team management (super-admin)
+  async getTeamMembers() {
+    return this.request('/admin/team');
+  }
+
+  async addTeamMember(data: { userId: string; roles: { type: string; detail?: string }[] }) {
+    return this.request('/admin/team', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async updateTeamMemberRoles(id: string, roles: { type: string; detail?: string }[]) {
+    return this.request(`/admin/team/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify({ roles }),
+    });
+  }
+
+  async removeTeamMember(id: string) {
+    return this.request(`/admin/team/${id}`, { method: 'DELETE' });
+  }
+
+  async searchUsers(q?: string) {
+    const params = q ? `?q=${encodeURIComponent(q)}` : '';
+    return this.request(`/admin/users${params}`);
+  }
+
   logout() {
     this.clearToken();
   }

@@ -214,3 +214,10 @@ developing the Dominion City Uyo Church app, ensuring it serves as a practical,
 user-friendly tool for church administration, communication, and community
 engagement.
 NOTE: Future adjustments will still be made and there’s room for adding extra features.
+
+
+The admin can assign cell group role to anybody, assign cell group name and the leader profile will be showing on any of their members cell group page
+
+Roles that the super-admin can assign to users, "Pastor, Cell leader [cell name], Department Leader [Department name],
+
+Think of creating departments, groups or positions

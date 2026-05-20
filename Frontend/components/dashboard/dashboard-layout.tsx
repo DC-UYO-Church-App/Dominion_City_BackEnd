@@ -6,7 +6,7 @@ import { useEffect, useState } from "react"
 import { BottomNavigation } from "@/components/navigation/bottom-navigation"
 import { SideDrawer } from "@/components/navigation/side-drawer"
 import { Button } from "@/components/ui/button"
-import { Menu } from "lucide-react"
+import { Menu, Bell } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { apiClient } from "@/lib/api"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
@@ -56,11 +56,11 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
   })()
 
   if (isCheckingAuth) {
-    return <div className="min-h-screen bg-white" />
+    return <div className="min-h-screen bg-[#EFF6FF]" />
   }
 
   return (
-    <div className="flex flex-col min-h-screen bg-white text-slate-900">
+    <div className="flex flex-col min-h-screen bg-[#EFF6FF] text-slate-900">
       {/* Top Header */}
       <header className="sticky top-0 z-30 flex items-center justify-between px-4 h-14 border-b border-slate-200 bg-white">
         <Button variant="ghost" size="icon" onClick={() => setIsDrawerOpen(true)} className="md:hidden">
@@ -71,6 +71,12 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
           <img src="/logo.png" alt="Dominion City" className="h-8 w-auto mr-2" />
           <h1 className="text-lg font-bold text-slate-900">Golden Heart</h1>
         </div>
+        <div className="flex items-center gap-2">
+          <button className="relative p-2 rounded-full hover:bg-slate-100 transition-colors">
+            <Bell className="h-5 w-5 text-slate-600" />
+            <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full" />
+          </button>
+
         <DropdownMenu open={isProfileMenuOpen} onOpenChange={setIsProfileMenuOpen}>
           <div
             onMouseEnter={() => setIsProfileMenuOpen(true)}
@@ -97,6 +103,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
             </DropdownMenuContent>
           </div>
         </DropdownMenu>
+        </div>
       </header>
 
       {/* Side Drawer (Mobile) */}
@@ -104,7 +111,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
 
       {/* Main Content */}
       <main className="flex-1 overflow-auto">
-        <div className="container mx-auto px-4 py-4 max-w-4xl">{children}</div>
+        <div className="w-[80%] mx-auto py-6">{children}</div>
       </main>
 
       {/* Bottom Navigation */}

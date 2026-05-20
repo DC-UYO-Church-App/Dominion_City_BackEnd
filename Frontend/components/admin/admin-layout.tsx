@@ -42,6 +42,11 @@ export function AdminLayout({ children }: AdminLayoutProps) {
   const router = useRouter()
   const pathname = usePathname()
 
+  const handleLogout = () => {
+    apiClient.logout()
+    router.replace("/super-admin/login")
+  }
+
   useEffect(() => {
     apiClient
       .getProfile()
@@ -113,7 +118,7 @@ export function AdminLayout({ children }: AdminLayoutProps) {
                 <Settings className="h-4 w-4" />
                 Settings
               </button>
-              <button type="button" className="flex w-full items-center gap-3 rounded-xl px-3 py-2 text-sm text-slate-600 hover:bg-slate-100">
+              <button type="button" onClick={handleLogout} className="flex w-full items-center gap-3 rounded-xl px-3 py-2 text-sm text-slate-600 hover:bg-slate-100">
                 <LogOut className="h-4 w-4" />
                 Logout
               </button>
