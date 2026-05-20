@@ -221,3 +221,4 @@ The admin can assign cell group role to anybody, assign cell group name and the 
 Roles that the super-admin can assign to users, "Pastor, Cell leader [cell name], Department Leader [Department name],
 
 Think of creating departments, groups or positions
+

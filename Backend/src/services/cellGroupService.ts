@@ -70,6 +70,30 @@ export class CellGroupService {
     }));
   }
 
+  static async getCellGroupsWithDetails(): Promise<any[]> {
+    const result = await query(
+      `SELECT
+         cg.*,
+         u.first_name || ' ' || u.last_name AS leader_name,
+         u.profile_image AS leader_image,
+         u.email AS leader_email,
+         COUNT(m.id) FILTER (WHERE m.is_active = true) AS member_count
+       FROM cell_groups cg
+       LEFT JOIN users u ON u.id = cg.leader_id
+       LEFT JOIN users m ON m.cell_group_id = cg.id
+       GROUP BY cg.id, u.first_name, u.last_name, u.profile_image, u.email
+       ORDER BY cg.name ASC`
+    );
+
+    return result.rows.map((row) => ({
+      ...this.mapDbRowToCellGroup(row),
+      leaderName: row.leader_name || null,
+      leaderImage: row.leader_image || null,
+      leaderEmail: row.leader_email || null,
+      memberCount: parseInt(row.member_count, 10) || 0,
+    }));
+  }
+
   static async getCellGroupMembers(cellGroupId: string): Promise<any[]> {
     const result = await query(
       `SELECT id, email, first_name, last_name, phone_number, profile_image

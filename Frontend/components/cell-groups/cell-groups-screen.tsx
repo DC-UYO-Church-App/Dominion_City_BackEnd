@@ -75,6 +75,7 @@ function Avatar({
 export function CellGroupsScreen() {
   const [cellGroup, setCellGroup] = useState<any>(null)
   const [members, setMembers] = useState<any[]>([])
+  const [currentUser, setCurrentUser] = useState<any>(null)
   const [attendanceStats, setAttendanceStats] = useState<any>(null)
   const [attendanceHistory, setAttendanceHistory] = useState<any[]>([])
   const [isLoading, setIsLoading] = useState(true)
@@ -96,6 +97,7 @@ export function CellGroupsScreen() {
       .then(async (res) => {
         const user = res?.user
         if (!user) return
+        setCurrentUser(user)
 
         if (user.id) {
           apiClient.getAttendanceStats(user.id).then(setAttendanceStats).catch(() => {})
@@ -105,10 +107,20 @@ export function CellGroupsScreen() {
             .catch(() => {})
         }
 
-        if (user.cellGroupId) {
+        let cellGroupId = user.cellGroupId
+
+        if (!cellGroupId) {
+          // Check if the user leads a cell group
+          const allRes = await apiClient.getCellGroups()
+          const allGroups: any[] = allRes?.cellGroups || allRes || []
+          const led = allGroups.find((cg: any) => cg.leaderId === user.id)
+          if (led) cellGroupId = led.id
+        }
+
+        if (cellGroupId) {
           const [cgRes, membersRes] = await Promise.all([
-            apiClient.getCellGroup(user.cellGroupId),
-            apiClient.getCellGroupMembers(user.cellGroupId),
+            apiClient.getCellGroup(cellGroupId),
+            apiClient.getCellGroupMembers(cellGroupId),
           ])
           setCellGroup(cgRes?.cellGroup || cgRes)
           setMembers(membersRes?.members || [])
@@ -119,9 +131,13 @@ export function CellGroupsScreen() {
   }, [])
 
   const leader = useMemo(() => {
-    if (!cellGroup?.leaderId || !members.length) return null
-    return members.find((m) => m.id === cellGroup.leaderId) ?? null
-  }, [cellGroup, members])
+    if (!cellGroup?.leaderId) return null
+    const fromMembers = members.find((m) => m.id === cellGroup.leaderId)
+    if (fromMembers) return fromMembers
+    // Cell leader may not appear in the members list if their cellGroupId isn't set
+    if (currentUser?.id === cellGroup.leaderId) return currentUser
+    return null
+  }, [cellGroup, members, currentUser])
 
   const nextMeeting = useMemo(
     () => (cellGroup?.meetingDay ? getNextOccurrence(cellGroup.meetingDay) : null),

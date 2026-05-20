@@ -36,6 +36,7 @@ const secondaryNav = [
   { icon: Users, label: "Reports", href: "/dashboard/admin/reports" },
   { icon: Users2, label: "Contact", href: "/dashboard/admin/contact" },
   { icon: Users, label: "Team", href: "/dashboard/admin/team" },
+  { icon: Users2, label: "Cells", href: "/dashboard/admin/cells" },
 ]
 
 export function AdminLayout({ children }: AdminLayoutProps) {

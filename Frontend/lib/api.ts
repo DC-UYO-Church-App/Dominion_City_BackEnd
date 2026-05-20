@@ -595,6 +595,46 @@ class ApiClient {
     return this.request(`/admin/users${params}`);
   }
 
+  // Admin cell group management
+  async getAdminCellGroups() {
+    return this.request('/admin/cell-groups');
+  }
+
+  async createAdminCellGroup(data: {
+    name: string;
+    address: string;
+    meetingDay: string;
+    meetingTime: string;
+    leaderId?: string;
+    latitude?: number;
+    longitude?: number;
+  }) {
+    return this.request('/admin/cell-groups', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async updateAdminCellGroup(
+    id: string,
+    data: {
+      name?: string;
+      address?: string;
+      meetingDay?: string;
+      meetingTime?: string;
+      leaderId?: string;
+    }
+  ) {
+    return this.request(`/admin/cell-groups/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async deleteAdminCellGroup(id: string) {
+    return this.request(`/admin/cell-groups/${id}`, { method: 'DELETE' });
+  }
+
   logout() {
     this.clearToken();
   }
