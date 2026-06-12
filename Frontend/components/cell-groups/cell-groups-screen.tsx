@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useMemo, useState } from "react"
-import { MapPin, Phone, MessageSquare, Mail, Check, X, Users, Search, ArrowLeftRight, ExternalLink } from "lucide-react"
+import { MapPin, Phone, MessageSquare, Mail, Check, X, Users, Search, ArrowLeftRight, ExternalLink, Bell, UserCheck, UserX } from "lucide-react"
 import { apiClient } from "@/lib/api"
 
 const FALLBACK_LEADER =
@@ -80,6 +80,10 @@ export function CellGroupsScreen() {
   const [attendanceHistory, setAttendanceHistory] = useState<any[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [memberSearch, setMemberSearch] = useState("")
+  const [joinRequests, setJoinRequests] = useState<any[]>([])
+  const [respondingId, setRespondingId] = useState<string | null>(null)
+  const [requestError, setRequestError] = useState<string | null>(null)
+  const [confirmAction, setConfirmAction] = useState<{ type: "accept" | "reject"; requestId: string; userName: string } | null>(null)
 
   const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000/api"
   const uploadsBaseUrl = apiBaseUrl.replace(/\/api$/, "")
@@ -122,8 +126,16 @@ export function CellGroupsScreen() {
             apiClient.getCellGroup(cellGroupId),
             apiClient.getCellGroupMembers(cellGroupId),
           ])
-          setCellGroup(cgRes?.cellGroup || cgRes)
+          const cg = cgRes?.cellGroup || cgRes
+          setCellGroup(cg)
           setMembers(membersRes?.members || [])
+          // Load pending join requests if this user is the cell leader
+          if (cg?.leaderId === user.id) {
+            apiClient
+              .getCellJoinRequests(cellGroupId)
+              .then((r) => setJoinRequests(r?.requests || []))
+              .catch(() => {})
+          }
         }
       })
       .catch(() => {})
@@ -158,6 +170,34 @@ export function CellGroupsScreen() {
         (m.email || "").toLowerCase().includes(q),
     )
   }, [members, memberSearch])
+
+  const isLeaderOfThisCell = cellGroup && currentUser && cellGroup.leaderId === currentUser.id
+
+  const handleConfirm = async () => {
+    if (!confirmAction) return
+    const { type, requestId } = confirmAction
+    setConfirmAction(null)
+    setRespondingId(requestId)
+    setRequestError(null)
+    try {
+      if (type === "accept") {
+        await apiClient.acceptCellJoinRequest(requestId)
+        setJoinRequests((prev) => prev.filter((r) => r.id !== requestId))
+        if (cellGroup?.id) {
+          apiClient.getCellGroupMembers(cellGroup.id).then((r) => setMembers(r?.members || [])).catch(() => {})
+        }
+      } else {
+        await apiClient.rejectCellJoinRequest(requestId)
+        setJoinRequests((prev) => prev.filter((r) => r.id !== requestId))
+      }
+    } catch (err: any) {
+      setRequestError(
+        err?.message || `Failed to ${type} request. Please try again.`
+      )
+    } finally {
+      setRespondingId(null)
+    }
+  }
 
   const attendanceRate = attendanceStats?.attendanceRate
     ? `${Math.round(attendanceStats.attendanceRate)}%`
@@ -386,6 +426,86 @@ export function CellGroupsScreen() {
           </div>
         </div>
 
+        {/* Join Requests Panel — visible to cell leader only */}
+        {isLeaderOfThisCell && (
+          <div className="md:col-span-12 bg-white rounded-xl shadow-sm border border-gray-200/50 overflow-hidden">
+            <div className="p-5 border-b border-gray-100 flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                <Bell className="h-5 w-5 text-[#1A3A6E]" />
+                <h3 className="text-base font-bold text-[#0A1F44]">Join Requests</h3>
+                {joinRequests.length > 0 && (
+                  <span className="flex h-5 w-5 items-center justify-center rounded-full bg-[#1E5EC8] text-[10px] font-bold text-white">
+                    {joinRequests.length}
+                  </span>
+                )}
+              </div>
+            </div>
+            {requestError && (
+              <div className="mx-5 mt-3 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600">
+                {requestError}
+              </div>
+            )}
+
+            {joinRequests.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-10 text-center px-6">
+                <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center mb-3">
+                  <Users className="h-5 w-5 text-gray-400" />
+                </div>
+                <p className="text-sm text-gray-500 font-medium">No pending join requests</p>
+              </div>
+            ) : (
+              <ul className="divide-y divide-gray-100">
+                {joinRequests.map((req) => {
+                  const fullName = `${req.user.firstName} ${req.user.lastName}`
+                  const avatar = req.user.profileImage
+                    ? req.user.profileImage.startsWith("http")
+                      ? req.user.profileImage
+                      : `${(process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000/api").replace(/\/api$/, "")}${req.user.profileImage.startsWith("/") ? "" : "/"}${req.user.profileImage}`
+                    : null
+                  const isBusy = respondingId === req.id
+
+                  return (
+                    <li key={req.id} className="flex items-center justify-between gap-4 px-5 py-4 hover:bg-gray-50">
+                      <div className="flex items-center gap-3 min-w-0">
+                        <Avatar src={avatar} name={fullName} size="md" />
+                        <div className="min-w-0">
+                          <p className="font-bold text-sm text-[#0A1F44] truncate">{fullName}</p>
+                          <p className="text-xs text-gray-400 truncate">{req.user.email}</p>
+                          {req.user.phoneNumber && (
+                            <p className="text-xs text-gray-400">{req.user.phoneNumber}</p>
+                          )}
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2 flex-shrink-0">
+                        <button
+                          onClick={() => setConfirmAction({ type: "accept", requestId: req.id, userName: fullName })}
+                          disabled={isBusy}
+                          className="flex items-center gap-1.5 rounded-lg bg-emerald-500 px-3 py-1.5 text-xs font-bold text-white hover:bg-emerald-600 transition-colors disabled:opacity-50"
+                        >
+                          {isBusy && respondingId === req.id ? (
+                            <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                          ) : (
+                            <UserCheck className="h-3.5 w-3.5" />
+                          )}
+                          Accept
+                        </button>
+                        <button
+                          onClick={() => setConfirmAction({ type: "reject", requestId: req.id, userName: fullName })}
+                          disabled={isBusy}
+                          className="flex items-center gap-1.5 rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-bold text-red-600 hover:bg-red-100 transition-colors disabled:opacity-50"
+                        >
+                          <UserX className="h-3.5 w-3.5" />
+                          Decline
+                        </button>
+                      </div>
+                    </li>
+                  )
+                })}
+              </ul>
+            )}
+          </div>
+        )}
+
         {/* Members Table */}
         <div className="md:col-span-12 bg-white rounded-xl shadow-sm border border-gray-200/50 overflow-hidden">
           <div className="p-5 border-b border-gray-100 flex flex-col md:flex-row justify-between md:items-center gap-4">
@@ -475,6 +595,49 @@ export function CellGroupsScreen() {
           </div>
         </div>
       </div>
+
+      {/* ── Confirmation Modal ───────────────────────────────────────────── */}
+      {confirmAction && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
+          <div className="w-full max-w-sm rounded-2xl bg-white p-6 shadow-2xl">
+            <div className={`flex h-12 w-12 items-center justify-center rounded-full ${confirmAction.type === "accept" ? "bg-emerald-100" : "bg-red-100"}`}>
+              {confirmAction.type === "accept"
+                ? <UserCheck className="h-5 w-5 text-emerald-600" />
+                : <UserX className="h-5 w-5 text-red-500" />
+              }
+            </div>
+            <h3 className="mt-3 text-base font-bold text-[#0A1F44]">
+              {confirmAction.type === "accept" ? "Accept Join Request?" : "Decline Join Request?"}
+            </h3>
+            <p className="mt-1 text-sm text-gray-500">
+              {confirmAction.type === "accept"
+                ? <><span className="font-semibold text-gray-700">{confirmAction.userName}</span> will be added to your cell group.</>
+                : <>Are you sure you want to decline <span className="font-semibold text-gray-700">{confirmAction.userName}</span>&apos;s request?</>
+              }
+            </p>
+            <div className="mt-5 flex gap-3">
+              <button
+                type="button"
+                onClick={() => setConfirmAction(null)}
+                className="flex-1 rounded-lg border border-slate-200 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirm}
+                className={`flex flex-1 items-center justify-center gap-2 rounded-lg py-2 text-sm font-semibold text-white transition-colors ${
+                  confirmAction.type === "accept"
+                    ? "bg-emerald-500 hover:bg-emerald-600"
+                    : "bg-red-500 hover:bg-red-600"
+                }`}
+              >
+                {confirmAction.type === "accept" ? "Yes, Accept" : "Yes, Decline"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

@@ -27,7 +27,7 @@ const primaryNav = [
   { icon: LayoutDashboard, label: "Dashboard", href: "/dashboard/admin" },
   { icon: BookOpen, label: "Sermons", href: "/dashboard/admin/sermons" },
   { icon: CreditCard, label: "Donations", href: "/dashboard/admin/donations" },
-  { icon: Users2, label: "Community", href: "/dashboard/admin/community" },
+  { icon: Users2, label: "Departments", href: "/dashboard/admin/community" },
   { icon: BookOpen, label: "Book Shop", href: "/dashboard/admin/book-shop" },
 ]
 

@@ -6,12 +6,13 @@ export class DepartmentService {
     name: string;
     description?: string;
     hodId?: string;
+    assistantId?: string;
   }): Promise<Department> {
     const result = await query(
-      `INSERT INTO departments (name, description, hod_id)
-       VALUES ($1, $2, $3)
+      `INSERT INTO departments (name, description, hod_id, assistant_id)
+       VALUES ($1, $2, $3, $4)
        RETURNING *`,
-      [data.name, data.description, data.hodId]
+      [data.name, data.description, data.hodId, data.assistantId]
     );
 
     return this.mapDbRowToDepartment(result.rows[0]);
@@ -33,10 +34,50 @@ export class DepartmentService {
     return result.rows.map(this.mapDbRowToDepartment);
   }
 
+  static async getDepartmentsWithDetails(): Promise<any[]> {
+    const result = await query(
+      `SELECT
+         d.id,
+         d.name,
+         d.description,
+         d.hod_id,
+         d.assistant_id,
+         d.created_at,
+         d.updated_at,
+         u_hod.first_name || ' ' || u_hod.last_name AS hod_name,
+         u_hod.profile_image AS hod_image,
+         u_asst.first_name || ' ' || u_asst.last_name AS assistant_name,
+         u_asst.profile_image AS assistant_image,
+         COUNT(members.id) FILTER (WHERE members.is_active = true) AS member_count
+       FROM departments d
+       LEFT JOIN users u_hod ON d.hod_id = u_hod.id
+       LEFT JOIN users u_asst ON d.assistant_id = u_asst.id
+       LEFT JOIN users members ON members.department_id = d.id
+       GROUP BY d.id, u_hod.first_name, u_hod.last_name, u_hod.profile_image,
+                u_asst.first_name, u_asst.last_name, u_asst.profile_image
+       ORDER BY d.name ASC`
+    );
+
+    return result.rows.map((row) => ({
+      id: row.id,
+      name: row.name,
+      description: row.description,
+      hodId: row.hod_id,
+      hodName: row.hod_name,
+      hodImage: row.hod_image,
+      assistantId: row.assistant_id,
+      assistantName: row.assistant_name,
+      assistantImage: row.assistant_image,
+      memberCount: parseInt(row.member_count, 10) || 0,
+      createdAt: row.created_at,
+      updatedAt: row.updated_at,
+    }));
+  }
+
   static async getDepartmentMembers(departmentId: string): Promise<any[]> {
     const result = await query(
       `SELECT id, email, first_name, last_name, phone_number, role, profile_image
-       FROM users 
+       FROM users
        WHERE department_id = $1 AND is_active = true
        ORDER BY role, first_name, last_name`,
       [departmentId]
@@ -105,6 +146,7 @@ export class DepartmentService {
       name: row.name,
       description: row.description,
       hodId: row.hod_id,
+      assistantId: row.assistant_id,
       createdAt: row.created_at,
       updatedAt: row.updated_at,
     };

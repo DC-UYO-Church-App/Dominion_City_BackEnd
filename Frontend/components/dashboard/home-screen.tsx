@@ -43,6 +43,10 @@ export function HomeScreen() {
   const [nearbyGroups, setNearbyGroups] = useState<any[]>([])
   const [nearbyLoading, setNearbyLoading] = useState(false)
   const [nearbyError, setNearbyError] = useState<string | null>(null)
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null)
+  const [userCellGroupId, setUserCellGroupId] = useState<string | null>(null)
+  const [myJoinRequest, setMyJoinRequest] = useState<any>(null)
+  const [joiningCellId, setJoiningCellId] = useState<string | null>(null)
 
   const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000/api"
   const uploadsBaseUrl = apiBaseUrl.replace(/\/api$/, "")
@@ -87,10 +91,13 @@ export function HomeScreen() {
         if (!user) return
         if (user.firstName) setFirstName(user.firstName)
         if (user.id) {
+          setCurrentUserId(user.id)
           apiClient.getAttendanceStats(user.id).then(setAttendanceStats).catch(() => {})
           apiClient.getTitheStats(user.id).then(setTitheStats).catch(() => {})
+          apiClient.getMyJoinRequest().then((r) => setMyJoinRequest(r?.joinRequest ?? null)).catch(() => {})
         }
         if (user.cellGroupId) {
+          setUserCellGroupId(user.cellGroupId)
           apiClient
             .getCellGroup(user.cellGroupId)
             .then((r) => {
@@ -198,6 +205,20 @@ export function HomeScreen() {
       },
       { timeout: 10000 },
     )
+  }
+
+  const handleJoinCell = async (cellGroupId: string) => {
+    setJoiningCellId(cellGroupId)
+    try {
+      const res = await apiClient.sendCellJoinRequest(cellGroupId)
+      setMyJoinRequest(res?.joinRequest ?? null)
+    } catch (err: any) {
+      // Show the server error briefly via nearbyError so the user sees it
+      setNearbyError(err?.message || "Failed to send join request. Please try again.")
+      setTimeout(() => setNearbyError(null), 4000)
+    } finally {
+      setJoiningCellId(null)
+    }
   }
 
   const attendanceRate = attendanceStats?.attendanceRate
@@ -619,6 +640,45 @@ export function HomeScreen() {
                       ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(group.address)}`
                       : null
 
+                    const alreadyInCell = !!userCellGroupId
+                    const pendingThisCell = myJoinRequest?.cellGroupId === group.id
+                    const pendingOtherCell = !!myJoinRequest && myJoinRequest.cellGroupId !== group.id
+                    const isJoiningThis = joiningCellId === group.id
+
+                    let joinBtn: React.ReactNode
+                    if (alreadyInCell) {
+                      joinBtn = (
+                        <span className="text-[11px] font-semibold text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-full whitespace-nowrap">
+                          In a cell
+                        </span>
+                      )
+                    } else if (pendingThisCell) {
+                      joinBtn = (
+                        <span className="text-[11px] font-semibold text-amber-600 bg-amber-50 px-2.5 py-1 rounded-full whitespace-nowrap">
+                          Request sent
+                        </span>
+                      )
+                    } else if (pendingOtherCell) {
+                      joinBtn = (
+                        <span className="text-[11px] font-semibold text-gray-400 bg-gray-100 px-2.5 py-1 rounded-full whitespace-nowrap">
+                          Request pending
+                        </span>
+                      )
+                    } else {
+                      joinBtn = (
+                        <button
+                          onClick={() => handleJoinCell(group.id)}
+                          disabled={isJoiningThis}
+                          className="text-[11px] font-bold text-white bg-[#1E5EC8] hover:bg-[#1A3A6E] px-2.5 py-1 rounded-full whitespace-nowrap transition-colors disabled:opacity-60 flex items-center gap-1"
+                        >
+                          {isJoiningThis && (
+                            <Loader2 className="h-3 w-3 animate-spin" />
+                          )}
+                          Join Cell
+                        </button>
+                      )
+                    }
+
                     return (
                       <li key={group.id} className="px-5 py-4 hover:bg-gray-50 transition-colors">
                         <div className="flex items-start justify-between gap-3">
@@ -642,6 +702,7 @@ export function HomeScreen() {
                                 {distKm} away
                               </span>
                             )}
+                            {joinBtn}
                             {mapsUrl && (
                               <a
                                 href={mapsUrl}
@@ -663,9 +724,19 @@ export function HomeScreen() {
 
             {/* Footer */}
             <div className="px-5 py-3 border-t border-gray-100 bg-gray-50">
-              <p className="text-[11px] text-gray-400 text-center">
-                Contact the church office to be assigned to a cell group.
-              </p>
+              {myJoinRequest ? (
+                <p className="text-[11px] text-amber-600 text-center font-medium">
+                  Your request to join &quot;{myJoinRequest.cellGroupName}&quot; is pending. You&apos;ll be notified when the leader responds.
+                </p>
+              ) : userCellGroupId ? (
+                <p className="text-[11px] text-emerald-600 text-center font-medium">
+                  You are already a member of a cell group.
+                </p>
+              ) : (
+                <p className="text-[11px] text-gray-400 text-center">
+                  Tap &quot;Join Cell&quot; to send a request to the cell leader.
+                </p>
+              )}
             </div>
           </div>
         </div>

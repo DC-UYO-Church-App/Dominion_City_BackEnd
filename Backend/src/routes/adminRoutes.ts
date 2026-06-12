@@ -3,6 +3,7 @@ import { AdminController } from '../controllers/adminController';
 import { TeamController } from '../controllers/teamController';
 import { CellGroupController } from '../controllers/cellGroupController';
 import { CellGroupService } from '../services/cellGroupService';
+import { DepartmentService } from '../services/departmentService';
 import { authenticate, authorize } from '../middleware/auth';
 import { UserRole } from '../types';
 
@@ -102,5 +103,89 @@ export async function adminRoutes(fastify: FastifyInstance) {
     '/cell-groups/:id',
     { onRequest: [authenticate, authorize(UserRole.SUPER_ADMIN)] },
     CellGroupController.deleteCellGroup
+  );
+
+  // Department management
+  fastify.get(
+    '/departments',
+    { onRequest: [authenticate, authorize(UserRole.SUPER_ADMIN)] },
+    async (_req, reply) => {
+      try {
+        const departments = await DepartmentService.getDepartmentsWithDetails();
+        reply.send({ departments });
+      } catch (error) {
+        console.error('Admin get departments error:', error);
+        reply.status(500).send({ error: 'Failed to get departments' });
+      }
+    }
+  );
+
+  fastify.post(
+    '/departments',
+    { onRequest: [authenticate, authorize(UserRole.SUPER_ADMIN)] },
+    async (req, reply) => {
+      try {
+        const body = req.body as { name: string; hodId?: string; assistantId?: string };
+        if (!body.name?.trim()) {
+          return reply.status(400).send({ error: 'Department name is required' });
+        }
+        const department = await DepartmentService.createDepartment({
+          name: body.name.trim(),
+          hodId: body.hodId,
+          assistantId: body.assistantId,
+        });
+        reply.status(201).send({ department });
+      } catch (error: any) {
+        console.error('Admin create department error:', error);
+        if (error.code === '23505') {
+          return reply.status(409).send({ error: 'A department with this name already exists' });
+        }
+        reply.status(500).send({ error: 'Failed to create department' });
+      }
+    }
+  );
+
+  fastify.put(
+    '/departments/:id',
+    { onRequest: [authenticate, authorize(UserRole.SUPER_ADMIN)] },
+    async (req, reply) => {
+      try {
+        const { id } = req.params as { id: string };
+        const body = req.body as { name?: string; hodId?: string; assistantId?: string };
+        const department = await DepartmentService.updateDepartment(id, {
+          name: body.name?.trim(),
+          hodId: body.hodId,
+          assistantId: body.assistantId,
+        });
+        if (!department) {
+          return reply.status(404).send({ error: 'Department not found' });
+        }
+        reply.send({ department });
+      } catch (error: any) {
+        console.error('Admin update department error:', error);
+        if (error.code === '23505') {
+          return reply.status(409).send({ error: 'A department with this name already exists' });
+        }
+        reply.status(500).send({ error: 'Failed to update department' });
+      }
+    }
+  );
+
+  fastify.delete(
+    '/departments/:id',
+    { onRequest: [authenticate, authorize(UserRole.SUPER_ADMIN)] },
+    async (req, reply) => {
+      try {
+        const { id } = req.params as { id: string };
+        const deleted = await DepartmentService.deleteDepartment(id);
+        if (!deleted) {
+          return reply.status(404).send({ error: 'Department not found' });
+        }
+        reply.send({ success: true });
+      } catch (error) {
+        console.error('Admin delete department error:', error);
+        reply.status(500).send({ error: 'Failed to delete department' });
+      }
+    }
   );
 }

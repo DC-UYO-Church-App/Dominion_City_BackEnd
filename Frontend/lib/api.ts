@@ -567,6 +567,36 @@ class ApiClient {
     return this.request(`/cell-groups/${id}/members`);
   }
 
+  // Cell join requests
+  async sendCellJoinRequest(cellGroupId: string) {
+    return this.request(`/cell-groups/${cellGroupId}/join-request`, {
+      method: 'POST',
+      body: JSON.stringify({}),
+    });
+  }
+
+  async getMyJoinRequest() {
+    return this.request('/cell-groups/join-requests/mine');
+  }
+
+  async getCellJoinRequests(cellGroupId: string) {
+    return this.request(`/cell-groups/${cellGroupId}/join-requests`);
+  }
+
+  async acceptCellJoinRequest(requestId: string) {
+    return this.request(`/cell-groups/join-requests/${requestId}/accept`, {
+      method: 'PUT',
+      body: JSON.stringify({}),
+    });
+  }
+
+  async rejectCellJoinRequest(requestId: string) {
+    return this.request(`/cell-groups/join-requests/${requestId}/reject`, {
+      method: 'PUT',
+      body: JSON.stringify({}),
+    });
+  }
+
   // Team management (super-admin)
   async getTeamMembers() {
     return this.request('/admin/team');
@@ -633,6 +663,32 @@ class ApiClient {
 
   async deleteAdminCellGroup(id: string) {
     return this.request(`/admin/cell-groups/${id}`, { method: 'DELETE' });
+  }
+
+  // Department management (super-admin)
+  async getAdminDepartments() {
+    return this.request('/admin/departments');
+  }
+
+  async createAdminDepartment(data: { name: string; hodId?: string; assistantId?: string }) {
+    return this.request('/admin/departments', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async updateAdminDepartment(
+    id: string,
+    data: { name?: string; hodId?: string; assistantId?: string }
+  ) {
+    return this.request(`/admin/departments/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async deleteAdminDepartment(id: string) {
+    return this.request(`/admin/departments/${id}`, { method: 'DELETE' });
   }
 
   logout() {

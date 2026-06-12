@@ -41,6 +41,8 @@ export enum NotificationType {
   EVENT_REMINDER = 'event_reminder',
   FIRST_TIMER_WELCOME = 'first_timer_welcome',
   TRAVEL_BLESSING = 'travel_blessing',
+  CELL_JOIN_REQUEST = 'cell_join_request',
+  CELL_JOIN_RESPONSE = 'cell_join_response',
   GENERAL = 'general',
 }
 
@@ -82,6 +84,7 @@ export interface Department {
   name: string;
   description?: string;
   hodId?: string;
+  assistantId?: string;
   createdAt: Date;
   updatedAt: Date;
 }

@@ -222,3 +222,10 @@ Roles that the super-admin can assign to users, "Pastor, Cell leader [cell name]
 
 Think of creating departments, groups or positions
 
+Cell group leader can send broadcast message to it's cell members
+
+DCA part
+
+Church branches[City pastors][chapter pastors]
+Integrate whatsapp notification
+Ongoning projects
